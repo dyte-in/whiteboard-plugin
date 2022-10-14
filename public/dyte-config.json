@@ -1,0 +1,27 @@
+{
+    "name": "Witeboard v2",
+    "version": "0.0.1",
+    "description": "Easy to use, team collaboration on the same whiteboard.",
+    "pluginId": "6d7b76c1-6091-44b1-ae85-bb65b9f48bb4",
+    "picture": "https://dyte-plugins.s3.ap-south-1.amazonaws.com/icons/witeboard.png",
+    "url": "https://6d7b76c1-6091-44b1-ae85-bb65b9f48bb4-latest.plugins.dyte.app",
+    "files": {
+        "include": [
+            "index.html",
+            "**/*"
+        ],
+        "exclude": [
+            "**/*.ts",
+            "*.md",
+            "**/*.dyt"
+        ]
+    },
+    "tags": [
+        "#writing",
+        "#ideation",
+        "#drawing",
+        "#diagrams"
+    ],
+    "author": "",
+    "repository": ""
+}
