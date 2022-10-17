@@ -1,0 +1,42 @@
+name: Deploy Plugin on Staging
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with: 
+          node-version: '14'
+      - name: Install Packages
+        run: npm install
+      - name: Build page
+        run: |
+          unset CI
+          export GENERATE_SOURCEMAP=false
+          npm run build
+      - uses: actions/setup-node@v2
+        with: 
+          node-version: '14'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@dyte-in'
+          always-auth: 'true'
+      - name: Deploy using Dyte CLI
+        run: |
+          echo "//npm.pkg.github.com/:_authToken=$NODE_AUTH_TOKEN" > $HOME/.npmrc
+          npm config set prefix ~/.local
+          npm i -g @dyte-in/cli@latest
+          cd dist/
+          
+          dyte config env -n staging
+          dyte config creds -o $DYTE_ORGANIZATION_ID -k $DYTE_API_KEY
+          dyte plugins publish -c dyte-config-staging.json -l
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          DYTE_ORGANIZATION_ID: ${{ secrets.DYTE_ORGANIZATION_ID_STAGING }}
+          DYTE_API_KEY: ${{ secrets.DYTE_API_KEY_STAGING }}
