@@ -1,8 +1,8 @@
-name: Deploy Plugin on Staging
+name: Deploy Plugin on Prod
 
 on:
   push:
-    branches: [staging]
+    branches: [main]
 
 jobs:
   deploy:
@@ -31,11 +31,11 @@ jobs:
           echo "//npm.pkg.github.com/:_authToken=$NODE_AUTH_TOKEN" > $HOME/.npmrc
           npm config set prefix ~/.local
           npm i -g @dyte-in/cli@latest
-          cp dyte-config-staging.json dist/dyte-config-staging.json
+          cp dyte-config.json dist/dyte-config.json
           cd dist/
-          dyte config env -n staging
+          dyte config env -n production
           dyte config creds -o $DYTE_ORGANIZATION_ID -k $DYTE_API_KEY
-          dyte plugins publish -c dyte-config-staging.json -l
+          dyte plugins publish -c dyte-config.json -l
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           DYTE_ORGANIZATION_ID: ${{ secrets.DYTE_ORGANIZATION_ID_STAGING }}
