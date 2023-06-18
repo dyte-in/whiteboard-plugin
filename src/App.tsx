@@ -1,35 +1,24 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
+import { useContext, useEffect } from 'react'
+import './index.css'
 import { Tldraw } from '@tldraw/tldraw'
-import { useMultiplayerState } from './plugin/Multiplayer';
+import logo from '../src/assets/icon.png'
+import { MainContext } from './context'
 
-const roomId = 'testing-room-1';
+import Canvas from './pages/canvas/Canvas'
 
-
-function App() {
-  const [count, setCount] = useState(0);
-
-  const { error, ...events } = useMultiplayerState(roomId);
+const App = () => {
+  const { plugin, meetingId } = useContext(MainContext);
 
 
   return (
-    <div className="tldraw">
-      <Tldraw
-        {...events}
-        darkMode
-        showMenu={false}
-        showPages={true}
-        disableAssets={true}
-        // disableAssets={false}
-        // onAssetCreate={async (file: File, id: string) => {
-        //   const url = await uploadToStorage(file, id)
-        //   return url
-        // }}
-        // onAssetDelete={async (id: string) => {
-        //   await delteFromStorage(id)
-        //   return
-        // }}/>
-      />
+    <div className='container'>
+      {
+        plugin && meetingId
+          ?  (
+           <Canvas />
+          )
+          : <div className="loading-page"><img src={logo} /> <p>Whiteboard</p></div>
+      }
     </div>
   )
 }

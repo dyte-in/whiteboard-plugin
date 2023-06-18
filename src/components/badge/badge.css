@@ -1,0 +1,15 @@
+.badge {
+    @apply fixed top-0 left-0 flex flex-col items-center justify-start;
+    height: 100vh;
+    width: 100vw;
+    z-index: 2345;
+    border: solid 3px;
+}
+
+.badge .label {
+    @apply m-2 p-2 bg-white shadow-lg rounded-md text-xs text-gray-500 border-solid border-[1px] border-gray-200 flex flex-row items-center; 
+}
+
+.dismiss {
+    @apply h-5 w-5 text-black cursor-pointer -mr-1 ml-1;
+}

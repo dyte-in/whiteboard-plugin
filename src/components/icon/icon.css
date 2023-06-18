@@ -1,0 +1,7 @@
+.icon-wrapper {
+    @apply flex items-center justify-center h-full w-full outline-none;
+}
+
+svg {
+    @apply h-2/3 w-2/3 outline-none bg-none flex self-center;
+}

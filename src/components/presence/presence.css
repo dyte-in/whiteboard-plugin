@@ -1,0 +1,30 @@
+.user-list {
+ @apply ml-2 flex flex-row items-center relative;   
+}
+.user-icon {
+    @apply !h-6 !w-6 rounded-full shadow-lg text-xs text-white flex items-center justify-center border-solid border-2 border-white box-content cursor-pointer select-none;
+}
+.more-users {
+    @apply h-6 w-6 text-black cursor-pointer;
+}
+
+.more-users-container {
+    @apply flex flex-col items-start justify-start relative;
+}
+
+.user-dropdown {
+    @apply max-h-60 overflow-y-auto bg-white absolute top-6 rounded-md   shadow-[0_8px_30px_rgb(0,0,0,0.12)] border-solid border-[1px] border-gray-200 w-40 overflow-x-hidden flex flex-col justify-center;
+}
+.user-tile {
+    @apply text-xs p-1 cursor-pointer border-solid border-0 border-b-[1px] border-gray-200 flex flex-row items-center justify-start w-full;
+    
+}
+
+.user-tile .user-icon {
+    @apply mr-1;
+}
+
+.user-tile p {
+    @apply m-0 p-0 text-ellipsis text-xs overflow-hidden line-clamp-1;
+    width: 30%;
+}

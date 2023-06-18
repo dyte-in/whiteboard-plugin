@@ -1,0 +1,10 @@
+.cursor-container {
+    @apply flex w-fit items-center justify-center;
+}
+.cursor-indicator {
+    @apply h-3 w-3 rounded-full mr-1 shadow-lg;
+}
+.cursor-label {
+    @apply px-2 py-1 text-xs text-gray-500 bg-white rounded-md shadow-lg whitespace-nowrap text-ellipsis overflow-hidden;
+    max-width: 150px;
+}
