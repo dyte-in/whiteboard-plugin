@@ -21,7 +21,6 @@ export function useMultiplayerState(roomId: string) {
     //Create a user and load room
     const onMount = useCallback(
       (app: TldrawApp) => {
-        console.log('on-mount')
         if (!roomId) return;
         app.loadRoom(roomId)
 
@@ -66,7 +65,6 @@ export function useMultiplayerState(roomId: string) {
       bindings: Record<string, TDBinding | undefined>,
       assets: Record<string, TDAsset | undefined>
     ) => {
-      console.log('on-change-page')
       const lShapes = rLiveShapes.current
       const lBindings = rLiveBindings.current
       const lAssets = rLiveAssets.current
@@ -101,7 +99,6 @@ export function useMultiplayerState(roomId: string) {
   
     // Document Changes
     useEffect(() => {
-      console.log('app and following mount')
       if (!(app)) return;
 
       const unsubs: (() => void)[] = [];
@@ -178,13 +175,11 @@ export function useMultiplayerState(roomId: string) {
     }, [app, following])
   
     const onSessionStart = React.useCallback(() => {
-      console.log('session-start');
       rIsPaused.current = true
     }, [store])
 
   
     const onSessionEnd = React.useCallback(() => {
-      console.log('session-end');
       rIsPaused.current = false
     }, [store])
 
@@ -207,8 +202,9 @@ export function useMultiplayerState(roomId: string) {
 
     // Update the cursor when a user's pointer moves
     const onChangePresence = throttle((app :TldrawApp, user: TDUser) => {
+      console.log(user);
       plugin.emit('user-presence', { user, camera: app.camera });
-    }, app?.selectedIds?.length ? 300 : 2);
+    }, app?.selectedIds?.length ? 6000 : 500);
   
     return {
       onMount,
