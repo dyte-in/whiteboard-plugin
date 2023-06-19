@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useContext, useEffect } from "react"
+import { useState, useRef, useCallback, useContext, useEffect } from "react"
 import { TldrawApp, TDShape, TDBinding, TDAsset, TDUserStatus, TDUser } from "@tldraw/tldraw"
 import { fetchUrl, getFormData, randomColor, throttle } from "../utils/helpers"
 import { MainContext } from "../context"
@@ -8,7 +8,17 @@ declare const window: Window & { app: TldrawApp }
 
 export function useMultiplayerState(roomId: string) {
     const [loading, setLoading] = useState(true);
-    const { self, setApp, app, plugin, store, setPeers, following, deletePeerCamera, updatePeerCameras } = useContext(MainContext);
+    const {
+      self,
+      setApp,
+      app,
+      plugin,
+      store,
+      following,
+      users,
+      updateUsers,
+      deleteUser,
+    } = useContext(MainContext);
 
     const rIsPaused = useRef(false)
   
@@ -16,7 +26,7 @@ export function useMultiplayerState(roomId: string) {
     const rLiveBindings = useRef<Record<string, any>>({})
     const rLiveAssets = useRef<Record<string, any>>({})
   
-    // Callbacks --------------
+    // Callbacks
 
     //Create a user and load room
     const onMount = useCallback(
@@ -26,7 +36,7 @@ export function useMultiplayerState(roomId: string) {
 
         const color = randomColor();
         const user = {
-          id: app!.currentUser!.id,
+          id: app.currentUser!.id,
           point: [0, 0],
           color,
           status: TDUserStatus.Connected,
@@ -39,23 +49,27 @@ export function useMultiplayerState(roomId: string) {
         plugin.emit('user-joined', {user, camera: app.camera });
   
         plugin.on('user-joined', ({ user, camera}: { user: TDUser, camera: any}) => {
+          if (user.metadata.id === self.id) return;
           app.updateUsers([{...user, selectedIds: []}]);
-          const users = Object.values(app.room?.users ?? [{...user, selectedIds: []}]);
-          setPeers(users.filter(x => x.metadata.id !== self.id));
-          updatePeerCameras(user.id, camera);
+          updateUsers(user.metadata.id, {
+            user,
+            camera
+          })
         });
 
         plugin.room.on('peerLeft', ({payload: { id }}: { payload: { id: string }}) => {
-          let users = Object.values(app.room?.users ?? {});
-          const user = users.find(x => x.metadata.id === id);
-          app.removeUser(user?.id ?? '');
-          setPeers(users.filter(x => (x.id !== user?.id || x.metadata.id !== self.id)));
-          deletePeerCamera(user?.id);
-
+          const user = users[id];
+          app.removeUser(user.id);
+          deleteUser(id);
         });
         setApp(app);
+
+        return () => {
+          plugin.removeListeners('user-joined');
+          plugin.room.removeListeners('peerLeft');
+        }
       },
-      [roomId]
+      [roomId, self]
     )
   
     // Update the live shapes when the app's shapes change.
@@ -157,11 +171,12 @@ export function useMultiplayerState(roomId: string) {
           }
         }
         plugin.on('user-presence', function ({user, camera}: { user: TDUser, camera: any }) {
+          if (user.metadata.id === self.id) return;
           if (following?.id === user.id) {
             app.setCamera(camera.point, camera.zoom, 'follow');
           }
           app?.updateUsers([{...user, selectedIds: []}]);
-          updatePeerCameras(user.id, camera);
+          updateUsers(user.metadata.id, { user, camera })
         });
         setLoading(false);
       }
@@ -172,26 +187,24 @@ export function useMultiplayerState(roomId: string) {
         plugin.removeListeners('user-presence');
         store.unsubscribe('shapes');
       }
-    }, [app, following])
+    }, [app, following, self])
   
-    const onSessionStart = React.useCallback(() => {
+    // Drawing line
+    const onSessionStart = useCallback(() => {
       rIsPaused.current = true
     }, [store])
-
   
-    const onSessionEnd = React.useCallback(() => {
+    const onSessionEnd = useCallback(() => {
       rIsPaused.current = false
     }, [store])
 
+    // Image Upload Handlers
     const handleImageUpload = async (_: TldrawApp, file: File, id: string) => {
       const {formData } = getFormData(file, id);
       return fetchUrl(formData, plugin.authToken) as Promise<string|false>;
     }
-
     const onAssetCreate = handleImageUpload;
-
     const onAssetUpload = handleImageUpload;
-
     const onAssetDelete = async (_: TldrawApp, assetId: string) => {
       try {
         await axios.delete(`${import.meta.env.VITE_API_BASE}/file/${assetId}`, {
@@ -202,9 +215,8 @@ export function useMultiplayerState(roomId: string) {
 
     // Update the cursor when a user's pointer moves
     const onChangePresence = throttle((app :TldrawApp, user: TDUser) => {
-      console.log(user);
       plugin.emit('user-presence', { user, camera: app.camera });
-    }, app?.selectedIds?.length ? 6000 : 500);
+    }, app?.selectedIds?.length ? 6000 : 200);
   
     return {
       onMount,

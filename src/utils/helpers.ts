@@ -2,7 +2,6 @@ import { TldrawApp } from "@tldraw/tldraw";
 import axios from "axios";
 
 const throttle = (cb: any, delay: number) => {
-    console.log(delay);
     let previousCall = new Date().getTime();
     return function(...args: any) {
         const time = new Date().getTime();

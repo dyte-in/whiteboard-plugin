@@ -5,7 +5,7 @@ import { MainContext } from '../../context';
 import React, { useContext, useEffect, useRef, useState } from 'react';
 
 const Presence = () => {
-    const { peers, peerCameras, setFollowing, app } = useContext(MainContext);
+    const { users, setFollowing, app } = useContext(MainContext);
     const hostEl = useRef<HTMLDivElement>(null);
     const [showMore, setShowMore] = useState<boolean>(false);
 
@@ -33,30 +33,35 @@ const Presence = () => {
 
     const follow = (peer: TDUser) => {
         setFollowing(peer);
-        const p = peerCameras[peer.id];
+        const p = users[peer.metadata.id];
         const zoom = app.camera.zoom;
         app.setCamera(p.point, zoom, 'follow');
     }
 
+    useEffect(() => {
+        console.log(users);
+    }, [users]);
+
     return (
         <div className="user-list">
             {
-                (peers as TDUser[])?.map((peer, index) => {
+                (Object.values(users))?.map((data: any, index) => {
                     if (index > 0) return;
+                    const { user }: { user: TDUser} = data;
                     return (
                         <div
                             key={index}
                             className="user-icon"
-                            onClick={() => follow(peer)}
-                            style={{ background: peer.color }}
+                            onClick={() => follow(user)}
+                            style={{ background: user.color }}
                         >
-                            {genName(peer.metadata.name)}
+                            {genName(user.metadata.name)}
                         </div>
                     )
                 })
             }
             {
-                peers && peers.length > 1 && (
+                users?.size && (
                     <div className='more-users-container' ref={hostEl}>
                     {
                         !showMore 
@@ -66,22 +71,23 @@ const Presence = () => {
                     {
                         showMore && <div className="user-dropdown">
                             {
-                                (peers as TDUser[])?.map((peer, index) => {
+                                (Object.values(users))?.map((data: any, index) => {
                                     if (index < 1) return;
+                                    const { user }: { user: TDUser} = data;
                                     return(
                                     <div
                                         key={index}
                                         className="user-tile"
-                                        onClick={() => follow(peer)}
+                                        onClick={() => follow(user)}
                                     >
                                         <div
                                             key={index}
                                             className="user-icon"
-                                            style={{ background: peer.color }}
+                                            style={{ background: user.color }}
                                         >
-                                            {genName(peer.metadata.name)}
+                                            {genName(user.metadata.name)}
                                         </div>
-                                        <p>{peer.metadata.name}</p>
+                                        <p>{user.metadata.name}</p>
                                     </div>
                                     )
                                 })

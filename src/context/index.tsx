@@ -4,14 +4,18 @@ import React, { useEffect, useState } from 'react'
 
 const MainContext = React.createContext<any>({});
 
+type PeerObj = {
+    user: TDUser,
+    camera: any,
+}
+
 const MainProvider = ({ children }: { children: any }) => {
     const [app, setApp] = useState<TldrawApp>();
     const [self, setSelf] = useState<string>();
     const [store, setStore] = useState<DyteStore>();
     const [plugin, setPlugin] = useState<DytePlugin>();
     const [meetingId, setMeetingId] = useState<string>('');
-    const [peers, setPeers] = useState<TDUser[]>([]);
-    const [peerCameras, setPeerCameras] = useState<{[key: string]: any}>({})
+    const [users, setUsers] = useState<{[key: string]: PeerObj}>({});
     const [following, setFollowing] = useState<TDUser>();
 
     const loadPlugin = async () => {
@@ -27,22 +31,21 @@ const MainProvider = ({ children }: { children: any }) => {
 
         // set store
         const dyteStore = dytePlugin.stores.create('drawings') as DyteStore; 
+
+        // TODO: set user object here
         setStore(dyteStore);
         
         setPlugin(dytePlugin);
     }
 
-    const updatePeerCameras = (id: string, camera: any) => {
-        setPeerCameras({
-            ...peerCameras,
-            [id]: camera,
-        })
+    const updateUsers = (id: string, val: any) => {
+        setUsers({ ...users, [id]: val })
     }
 
-    const deletePeerCamera = (id: string) => {
-        const cams = peerCameras;
-        delete cams[id];
-        setPeerCameras(cams);
+    const deleteUser = (id: string) => {
+        const tempUsers = users;
+        delete tempUsers[id];
+        setUsers(tempUsers);
     }
 
     useEffect(() => {
@@ -61,13 +64,11 @@ const MainProvider = ({ children }: { children: any }) => {
                 plugin,
                 meetingId,
                 self,
-                peers,
-                setPeers,
                 following,
                 setFollowing,
-                peerCameras,
-                updatePeerCameras,
-                deletePeerCamera,
+                users,
+                updateUsers,
+                deleteUser,
             }}
         >
             {children}
