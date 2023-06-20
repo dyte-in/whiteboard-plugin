@@ -8,15 +8,19 @@ import axios from 'axios';
 export function UsePlayer(meetingId: string) {
     // define states and constants
     const {
-        app,
-        data,
-        self,
-        users,
-        plugin,
-        setApp,
-        updateUsers,
-        deleteUser,
-        updateData,
+      app,
+      data,
+      self,
+      users,
+      plugin,
+      setApp,
+      followers,
+      following,
+      deleteUser,
+      updateData,
+      updateUsers,
+      setFollowing,
+      setFollowers,
     } = useContext(MainContext);
    
     const rIsPaused = useRef(false);
@@ -60,6 +64,12 @@ export function UsePlayer(meetingId: string) {
     useEffect(() => {
         plugin.room.on('peerLeft', ({payload: { id }}: { payload: { id: string }}) => {
             deleteUser(id);
+            setFollowers(() => followers.filter((x: string) => x !== id));
+            const index = following.indexOf(id);
+            const tempFollowing = following;
+            tempFollowing.splice(index, tempFollowing.length - 1);
+            setFollowing(tempFollowing);
+
         })
         return () => {
             plugin.room.removeListeners('peerLeft');

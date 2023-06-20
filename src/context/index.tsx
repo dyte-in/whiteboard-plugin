@@ -164,6 +164,11 @@ const MainProvider = ({ children }: { children: any }) => {
         }
     }, []);
 
+    // DEBUG LOG
+    // useEffect(() => {
+    //     console.log('updated follow list: ', following);
+    // }, [following])
+
     // event for follow user flow
     useEffect(() => {
         if (!plugin || !self || !app) return;
@@ -211,8 +216,6 @@ const MainProvider = ({ children }: { children: any }) => {
         if (!following || !app || !users) return;
         const followID = following[following?.length - 1];
         if (followID) {
-            console.log('users:', users);
-            console.log('followID: ', followID);
             const camera = users[followID]?.camera;
             if (!camera) return;
             app.setCamera(camera.point, camera.zoom, 'follow');
@@ -238,6 +241,7 @@ const MainProvider = ({ children }: { children: any }) => {
                 updateData,
                 updateUsers,  
                 setFollowing,
+                setFollowers,
             }}
         >
             {children}

@@ -7,4 +7,4 @@
 # Bugs
 1. web-core storeDeleteKeys -> SyntaxError: Unexpected end of JSON input
     at JSON.parse 
-2. custom events to peers
+2. ~~custom events to peers~~
