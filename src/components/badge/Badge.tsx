@@ -16,21 +16,21 @@ const Badge = () => {
     const [user, setUser] = useState<TDUser>();
 
     const unfollow = () => {
-        const tempFollowing = following;
-        const unfollowed = tempFollowing.pop();
         if (followers?.length) {
             followers.forEach((follower: TDUser) => {
-                plugin.emit('remote-unfollow', { to: follower, unfollow: unfollowed });
+                plugin.emit('remote-unfollow', { to: follower, unfollow: following[0] });
             });
         }
-        plugin.emit('unfollow', { to: unfollowed, from: self.id });
-        setFollowing(tempFollowing);
+        following.forEach((user: string) => {
+            plugin.emit('unfollow', { to: user, from: self.id });
+        })
+        setFollowing([]);
         setUser(undefined);
     }
     
     useEffect(() => {
         if (!following) return;
-        const followId =following[following.length - 1];
+        const followId =following[0];
         const u = users[followId];
         setUser(u?.user);
     }, [following])

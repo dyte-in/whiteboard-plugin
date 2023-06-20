@@ -44,7 +44,7 @@ const Presence = () => {
             followers.forEach((follower) => {
                 plugin.emit('follow-resp', {
                     to: follower,
-                    from: user.metadata.id,
+                    from: [user.metadata.id],
                 });
             });
             plugin.emit('remote-follow', { newFollowers: followers, to: user.metadata.id })

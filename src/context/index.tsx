@@ -101,7 +101,7 @@ const MainProvider = ({ children }: { children: any }) => {
         if (!following) return;
         const followID = following[following?.length - 1];
         if (!followID) return;
-        const camera = users[followID].camera;
+        const camera = users[followID]?.camera;
         if (!camera) return;
         app.setCamera(camera.point, camera.zoom, 'follow');
         
@@ -171,15 +171,14 @@ const MainProvider = ({ children }: { children: any }) => {
             if (to !== self.id) return;
             // update followers
             setFollowers([ ...followers, from ]);
-            // TODO: if user is following someone send that userid instead of "to".
             plugin.emit('follow-resp', {
                 to: from,
-                from: to,
+                from: [to, ...following],
             });
         });
         plugin.on('follow-resp', ({ to, from }) => {
             if (to !== self.id) return;
-            setFollowing([...following, from ]);
+            setFollowing([...following, ...from ]);
         });
         plugin.on('unfollow', ({ to, from }) => {
             if (to !== self.id) return;
@@ -194,8 +193,11 @@ const MainProvider = ({ children }: { children: any }) => {
             if (to !== self.id) return;
             const index = following.indexOf(unfollow);
             const tempFollowing = following;
-            tempFollowing.splice(index, 9);
+            tempFollowing.splice(index, tempFollowing.length - 1);
             setFollowing([...tempFollowing]);
+            following.forEach((user: string) => {
+                plugin.emit('unfollow', { to: user, from: self.id });
+            });   
         });
         return () => {
             plugin.removeListeners('follow-init');
@@ -209,7 +211,10 @@ const MainProvider = ({ children }: { children: any }) => {
         if (!following || !app || !users) return;
         const followID = following[following?.length - 1];
         if (followID) {
-            const camera = users[followID].camera;
+            console.log('users:', users);
+            console.log('followID: ', followID);
+            const camera = users[followID]?.camera;
+            if (!camera) return;
             app.setCamera(camera.point, camera.zoom, 'follow');
         }
     }, [following, app])
