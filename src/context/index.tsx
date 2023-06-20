@@ -24,6 +24,11 @@ interface DyteError {
     [key: string]: any;
 }
 
+interface Config {
+    follow?: string;
+    autoScaling?: boolean;
+}
+
 const MainProvider = ({ children }: { children: any }) => {
     const [plugin, setPlugin] = useState<DytePlugin>();
     const [app, setApp] = useState<TldrawApp>();
@@ -36,6 +41,10 @@ const MainProvider = ({ children }: { children: any }) => {
     const [following, setFollowing] = useState<string[]>([]);
     const [currId, setCurrId] = useState<string>('');
     const [error, setError] = useState<DyteError>();
+    const [config, setConfig] = useState<Config>({
+        autoScaling: true,
+        follow: '',
+    });
 
     // update drawing store
     const updateData = async (data: Data) => {
@@ -54,6 +63,8 @@ const MainProvider = ({ children }: { children: any }) => {
             data.assets ?? {}
         );
 
+        // do not scale if config says no
+        if (!config?.autoScaling) return;
         // do not scale if the changes were made by you
         if (currId === self.id) return;
         // do not scale if you are following someone
@@ -110,7 +121,7 @@ const MainProvider = ({ children }: { children: any }) => {
     // load plugin
     const loadPlugin = async () => {
         // Init plugin
-        const dytePlugin = DytePlugin.init();
+        const dytePlugin = DytePlugin.init({ ready: false });
 
         // populate stores
         await dytePlugin.stores.populate('drawings');
@@ -154,8 +165,19 @@ const MainProvider = ({ children }: { children: any }) => {
             });
         })
 
+        // update config
+        dytePlugin.room.addListener('config', ({ payload }) => {
+            setConfig({
+                ...config,
+                ...payload
+            });
+            if (payload.follow && peer.id !== payload.follow) {
+                setFollowing([payload.follow]);
+            }
+        });
         // set plugin
         setPlugin(dytePlugin);
+        dytePlugin.ready();
     }
     useEffect(() => {
         loadPlugin();
@@ -164,14 +186,9 @@ const MainProvider = ({ children }: { children: any }) => {
         }
     }, []);
 
-    // DEBUG LOG
-    // useEffect(() => {
-    //     console.log('updated follow list: ', following);
-    // }, [following])
-
     // event for follow user flow
     useEffect(() => {
-        if (!plugin || !self || !app) return;
+        if (!plugin || !self || !app || !config) return;
         plugin.on('follow-init', ({ to, from }) => {
             if (to !== self.id) return;
             // update followers
@@ -211,7 +228,7 @@ const MainProvider = ({ children }: { children: any }) => {
             plugin.removeListeners('remote-unfollow');
             plugin.removeListeners('follow-error');
         };
-    }, [plugin, self, app, following, followers, setFollowing]);
+    }, [plugin, self, app, following, followers]);
     useEffect(() => {
         if (!following || !app || !users) return;
         const followID = following[following?.length - 1];
@@ -231,6 +248,7 @@ const MainProvider = ({ children }: { children: any }) => {
                 error,
                 peers,
                 users,
+                config,
                 plugin,
                 meetingId,
                 following,

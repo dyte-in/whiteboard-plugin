@@ -9,6 +9,7 @@ const Badge = () => {
         users,
         self,
         plugin,
+        config,
         following,
         followers,
         setFollowing,
@@ -29,11 +30,12 @@ const Badge = () => {
     }
     
     useEffect(() => {
-        if (!following) return;
+        if (!following || !users) return;
         const followId =following[0];
         const u = users[followId];
+        if (user?.id === followId) return;
         setUser(u?.user);
-    }, [following])
+    }, [following, users])
 
     if (!user) return null;
     return (
@@ -45,7 +47,9 @@ const Badge = () => {
 
             <div className="label">
                 You are following {user?.metadata?.name}
-                <Icon onClick={unfollow} icon='dismiss' className="dismiss" />
+                {
+                    !config?.follow && <Icon onClick={unfollow} icon='dismiss' className="dismiss" />
+                }
             </div>
         </div>
     )

@@ -13,6 +13,7 @@ export function UsePlayer(meetingId: string) {
       self,
       users,
       plugin,
+      config,
       setApp,
       followers,
       following,
@@ -63,18 +64,18 @@ export function UsePlayer(meetingId: string) {
     // update users when a peer leaves
     useEffect(() => {
         plugin.room.on('peerLeft', ({payload: { id }}: { payload: { id: string }}) => {
-            deleteUser(id);
-            setFollowers(() => followers.filter((x: string) => x !== id));
-            const index = following.indexOf(id);
-            const tempFollowing = following;
-            tempFollowing.splice(index, tempFollowing.length - 1);
-            setFollowing(tempFollowing);
-
-        })
+          if (config.follow === id) return;
+          deleteUser(id);
+          setFollowers(() => followers.filter((x: string) => x !== id));
+          const index = following.indexOf(id);
+          const tempFollowing = following;
+          tempFollowing.splice(index, tempFollowing.length - 1);
+          setFollowing(tempFollowing);
+        });
         return () => {
             plugin.room.removeListeners('peerLeft');
         }
-    }, [])
+    }, [config])
 
     // load initial data and user positions
     useEffect(() => {
