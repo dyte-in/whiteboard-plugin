@@ -6,8 +6,8 @@ import { useContext, useEffect, useRef, useState } from 'react';
 import DytePlugin from '@dytesdk/plugin-sdk';
 
 const Presence = () => {
-    const { plugin, self, peers, followers } 
-        : { plugin: DytePlugin, self: any, peers: User[], followers: string[] } 
+    const { plugin, self, peers, followers, setError } 
+        : { plugin: DytePlugin, self: any, peers: User[], followers: string[], setError: any } 
         = useContext(MainContext);
 
     const hostEl = useRef<HTMLDivElement>(null);
@@ -36,7 +36,19 @@ const Presence = () => {
     };
 
     const follow = (user: TDUser) => {
-        // TODO: emit follow-resp to all your followers
+        if (followers.includes(user.metadata.id)) {
+            setError({ message: 'You can\'t follow a user who is following you.' });
+            return;
+        }
+        if (followers?.length) {
+            followers.forEach((follower) => {
+                plugin.emit('follow-resp', {
+                    to: follower,
+                    from: user.metadata.id,
+                });
+            });
+            plugin.emit('remote-follow', { newFollowers: followers, to: user.metadata.id })
+        }
         plugin.emit('follow-init', {
             to: user.metadata.id,
             from: self.id,

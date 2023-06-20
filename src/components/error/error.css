@@ -1,0 +1,18 @@
+.error-modal {
+    @apply fixed flex items-center justify-center bg-black/10;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999999;
+}
+.error-box {
+    @apply p-2 bg-white shadow-lg rounded-md flex flex-col items-center justify-center w-[45%];
+}
+.error-box h3 {
+    @apply text-base m-0 p-0;
+}
+.error-box p {
+    @apply text-sm my-1 mx-0 p-0 text-gray-500 text-center;
+}
+.error-box button {
+    @apply outline-none border-none p-1 w-full mt-2 rounded-sm bg-zinc-400 text-white text-sm cursor-pointer;
+}

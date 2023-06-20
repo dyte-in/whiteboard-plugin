@@ -19,6 +19,11 @@ interface Data {
     id?: string,
 }
 
+interface DyteError {
+    message: string;
+    [key: string]: any;
+}
+
 const MainProvider = ({ children }: { children: any }) => {
     const [plugin, setPlugin] = useState<DytePlugin>();
     const [app, setApp] = useState<TldrawApp>();
@@ -30,6 +35,7 @@ const MainProvider = ({ children }: { children: any }) => {
     const [followers, setFollowers] = useState<string[]>([]);
     const [following, setFollowing] = useState<string[]>([]);
     const [currId, setCurrId] = useState<string>('');
+    const [error, setError] = useState<DyteError>();
 
     // update drawing store
     const updateData = async (data: Data) => {
@@ -162,12 +168,10 @@ const MainProvider = ({ children }: { children: any }) => {
     useEffect(() => {
         if (!plugin || !self || !app) return;
         plugin.on('follow-init', ({ to, from }) => {
-
             if (to !== self.id) return;
             // update followers
             setFollowers([ ...followers, from ]);
             // TODO: if user is following someone send that userid instead of "to".
-            // TODO: cannot follow a user who is following you.
             plugin.emit('follow-resp', {
                 to: from,
                 from: to,
@@ -181,20 +185,33 @@ const MainProvider = ({ children }: { children: any }) => {
             if (to !== self.id) return;
             setFollowers(followers.filter(x => x !== from));
 
-        })
+        });
+        plugin.on('remote-follow', ({ newFollowers, to }) => {
+            if (to !== self.id) return;
+            setFollowers([...followers, ...newFollowers])
+        });
+        plugin.on('remote-unfollow', ({ to, unfollow }) => {
+            if (to !== self.id) return;
+            const index = following.indexOf(unfollow);
+            const tempFollowing = following;
+            tempFollowing.splice(index, 9);
+            setFollowing([...tempFollowing]);
+        });
         return () => {
             plugin.removeListeners('follow-init');
             plugin.removeListeners('follow-resp');
+            plugin.removeListeners('remote-follow');
+            plugin.removeListeners('remote-unfollow');
+            plugin.removeListeners('follow-error');
         };
-    }, [plugin, self, app])
+    }, [plugin, self, app, following, followers, setFollowing]);
     useEffect(() => {
         if (!following || !app || !users) return;
         const followID = following[following?.length - 1];
         if (followID) {
             const camera = users[followID].camera;
             app.setCamera(camera.point, camera.zoom, 'follow');
-          }
-        
+        }
     }, [following, app])
 
     return (
@@ -203,6 +220,7 @@ const MainProvider = ({ children }: { children: any }) => {
                 app,
                 data,
                 self,
+                error,
                 peers,
                 users,
                 plugin,
@@ -210,6 +228,7 @@ const MainProvider = ({ children }: { children: any }) => {
                 following,
                 followers,
                 setApp,
+                setError,
                 deleteUser,
                 updateData,
                 updateUsers,  

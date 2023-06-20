@@ -5,12 +5,24 @@ import Icon from '../icon/Icon';
 import { TDUser } from '@tldraw/tldraw';
 
 const Badge = () => {
-    const { users, self, plugin, following, setFollowing } = useContext(MainContext);
+    const {
+        users,
+        self,
+        plugin,
+        following,
+        followers,
+        setFollowing,
+    } = useContext(MainContext);
     const [user, setUser] = useState<TDUser>();
 
     const unfollow = () => {
         const tempFollowing = following;
         const unfollowed = tempFollowing.pop();
+        if (followers?.length) {
+            followers.forEach((follower: TDUser) => {
+                plugin.emit('remote-unfollow', { to: follower, unfollow: unfollowed });
+            });
+        }
         plugin.emit('unfollow', { to: unfollowed, from: self.id });
         setFollowing(tempFollowing);
         setUser(undefined);

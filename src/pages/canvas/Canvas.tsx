@@ -7,6 +7,7 @@ import CustomCursor from '../../components/cursor/CustomCursor';
 import SaveButton from '../../components/saveButton/SaveButton';
 import Presence from '../../components/presence/Presence';
 import Badge from '../../components/badge/Badge';
+import ErrorModal from '../../components/error/Error'
 
 const Canvas = () => {
   const { meetingId } = useContext(MainContext);
@@ -28,6 +29,7 @@ const Canvas = () => {
           <Presence />
         </div>
         <Badge />
+        <ErrorModal />
     </div>
   )
 }
