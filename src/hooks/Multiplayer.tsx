@@ -89,7 +89,7 @@ export function useMultiplayerState(roomId: string) {
           }
           delete lShapes[id]
         } else {
-          lShapes[shape.id] =shape;
+          lShapes[shape.id] = shape;
         }
       })
       Object.entries(bindings).forEach(([id, binding]) => {

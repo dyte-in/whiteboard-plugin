@@ -2,7 +2,13 @@
  @apply ml-2 flex flex-row items-center relative;   
 }
 .user-icon {
-    @apply !h-6 !w-6 rounded-full shadow-lg text-xs text-white flex items-center justify-center border-solid border-2 border-white box-content cursor-pointer select-none;
+    @apply !h-6 !w-6 rounded-full shadow-lg text-xs text-white flex items-center justify-center border-solid border-2 border-white box-content cursor-pointer select-none relative;
+}
+.tooltip {
+    @apply absolute flex bg-gray-200 min-w-fit w-14 py-0.5 px-1 rounded-sm items-center justify-center line-clamp-1 text-gray-700 text-xs top-8 left-0 hidden;
+}
+.user-icon:hover .tooltip {
+    @apply flex;
 }
 .more-users {
     @apply h-6 w-6 text-black cursor-pointer;

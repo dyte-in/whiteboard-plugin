@@ -1,11 +1,15 @@
 import './presence.css';
 import Icon from '../icon/Icon';
 import { TDUser } from '@tldraw/tldraw';
-import { MainContext } from '../../context';
-import React, { useContext, useEffect, useRef, useState } from 'react';
+import { MainContext, User } from '../../context';
+import { useContext, useEffect, useRef, useState } from 'react';
+import DytePlugin from '@dytesdk/plugin-sdk';
 
 const Presence = () => {
-    const { users, setFollowing, app } = useContext(MainContext);
+    const { plugin, self, peers, followers } 
+        : { plugin: DytePlugin, self: any, peers: User[], followers: string[] } 
+        = useContext(MainContext);
+
     const hostEl = useRef<HTMLDivElement>(null);
     const [showMore, setShowMore] = useState<boolean>(false);
 
@@ -31,37 +35,37 @@ const Presence = () => {
         }
     };
 
-    const follow = (peer: TDUser) => {
-        setFollowing(peer);
-        const p = users[peer.metadata.id];
-        const zoom = app.camera.zoom;
-        app.setCamera(p.point, zoom, 'follow');
+    const follow = (user: TDUser) => {
+        // TODO: emit follow-resp to all your followers
+        plugin.emit('follow-init', {
+            to: user.metadata.id,
+            from: self.id,
+        });
     }
-
-    useEffect(() => {
-        console.log(users);
-    }, [users]);
 
     return (
         <div className="user-list">
             {
-                (Object.values(users))?.map((data: any, index) => {
-                    if (index > 0) return;
-                    const { user }: { user: TDUser} = data;
+                peers?.map(({ user }: { user: TDUser}, index) => {
+                    if (index > 2) return;
                     return (
                         <div
                             key={index}
                             className="user-icon"
                             onClick={() => follow(user)}
-                            style={{ background: user.color }}
+                            style={{ background: user?.color }}
                         >
                             {genName(user.metadata.name)}
+                            <div className="tooltip">
+                                {user.metadata.name}
+                            </div>
                         </div>
+                        
                     )
                 })
             }
             {
-                users?.size && (
+                peers && peers.length > 3 && (
                     <div className='more-users-container' ref={hostEl}>
                     {
                         !showMore 
@@ -71,9 +75,8 @@ const Presence = () => {
                     {
                         showMore && <div className="user-dropdown">
                             {
-                                (Object.values(users))?.map((data: any, index) => {
-                                    if (index < 1) return;
-                                    const { user }: { user: TDUser} = data;
+                                (peers)?.map(({ user }: { user: TDUser}, index) => {
+                                    if (index < 3) return;
                                     return(
                                     <div
                                         key={index}
@@ -102,8 +105,3 @@ const Presence = () => {
 }
 
 export default Presence
-
-/**
- * TODO Tasks:
- * 1. on hover show name of the person.
- */

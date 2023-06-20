@@ -1,17 +1,17 @@
-import React, { useContext, useState } from 'react';
 import './canvas.css';
 import { Tldraw } from '@tldraw/tldraw';
-import { useMultiplayerState } from '../../hooks/Multiplayer';
 import { MainContext } from '../../context';
+import { UsePlayer } from '../../hooks/PlayerHook';
+import React, { useContext, useEffect, useState } from 'react';
+import CustomCursor from '../../components/cursor/CustomCursor';
 import SaveButton from '../../components/saveButton/SaveButton';
 import Presence from '../../components/presence/Presence';
-import CustomCursor from '../../components/cursor/CustomCursor';
 import Badge from '../../components/badge/Badge';
 
 const Canvas = () => {
-    const { meetingId } = useContext(MainContext);
-    const { ...events } = useMultiplayerState(meetingId);
-    const component = { Cursor: CustomCursor };
+  const { meetingId } = useContext(MainContext);
+  const { ...events } = UsePlayer(meetingId);
+  const component = { Cursor: CustomCursor };
 
   return (
     <div>

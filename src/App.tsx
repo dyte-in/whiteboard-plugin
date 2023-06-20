@@ -1,19 +1,16 @@
-import { useContext, useEffect } from 'react'
-import './index.css'
-import { Tldraw } from '@tldraw/tldraw'
-import logo from '../src/assets/icon.png'
-import { MainContext } from './context'
-
-import Canvas from './pages/canvas/Canvas'
+import './index.css';
+import { useContext } from 'react';
+import { MainContext } from './context';
+import logo from '../src/assets/icon.png';
+import Canvas from './pages/canvas/Canvas';
 
 const App = () => {
-  const { plugin, meetingId } = useContext(MainContext);
-
+  const { plugin, meetingId, data, self } = useContext(MainContext);
 
   return (
     <div className='container'>
       {
-        plugin && meetingId
+        plugin && meetingId && data && self
           ?  (
            <Canvas />
           )
