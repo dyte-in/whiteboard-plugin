@@ -35,9 +35,20 @@ const Badge = () => {
         const u = users[followId];
         if (user?.id === followId) return;
         setUser(u?.user);
-    }, [following, users])
+    }, [following, users]);
 
+
+    if (!user && config?.role === 'viewer') return (
+        <div className="badge"
+        style={{
+            borderColor: 'gray',
+        }}
+        >
+            <div className="label">You have joined as a viewer</div>
+        </div>
+    )
     if (!user) return null;
+
     return (
         <div className="badge"
         style={{

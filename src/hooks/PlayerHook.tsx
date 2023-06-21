@@ -64,7 +64,6 @@ export function UsePlayer(meetingId: string) {
     // update users when a peer leaves
     useEffect(() => {
         plugin.room.on('peerLeft', ({payload: { id }}: { payload: { id: string }}) => {
-          if (config.follow === id) return;
           deleteUser(id);
           setFollowers(() => followers.filter((x: string) => x !== id));
           const index = following.indexOf(id);

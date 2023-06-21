@@ -26,6 +26,7 @@ interface DyteError {
 
 interface Config {
     follow?: string;
+    role?: 'editor' | 'viewer';
     autoScaling?: boolean;
 }
 
@@ -44,6 +45,7 @@ const MainProvider = ({ children }: { children: any }) => {
     const [config, setConfig] = useState<Config>({
         autoScaling: true,
         follow: '',
+        role: 'editor',
     });
 
     // update drawing store
@@ -165,16 +167,14 @@ const MainProvider = ({ children }: { children: any }) => {
             });
         })
 
-        // update config
-        dytePlugin.room.addListener('config', ({ payload }) => {
+        // fetch and update config
+        dytePlugin.room.addListener('config', ({ payload: { data } }) => {
             setConfig({
                 ...config,
-                ...payload
+                ...data
             });
-            if (payload.follow && peer.id !== payload.follow) {
-                setFollowing([payload.follow]);
-            }
         });
+
         // set plugin
         setPlugin(dytePlugin);
         dytePlugin.ready();
@@ -186,7 +186,47 @@ const MainProvider = ({ children }: { children: any }) => {
         }
     }, []);
 
-    // event for follow user flow
+    useEffect(() => {
+        console.log('now following:', following);
+    }, [following])
+    
+
+    // events for follow via config flow
+    useEffect(() => {
+        if (!plugin || !self) return;
+        plugin.addListener('add-config-follower', ({ to, from }) => {
+            if (to !== self.id) return;
+            setFollowers([...followers, from]);
+            plugin.emit('add-config-following', {
+                to: from,
+                newFollowing: [to, ...following],
+            })
+        })
+        return () => {
+            plugin.removeListeners('add-config-follower');
+        }
+    }, [plugin, self, followers, following]);
+
+    useEffect(() => {
+        if (!config.follow || !self || !plugin) return;
+        if (config.follow && self.id !== config.follow) {
+            setFollowing([config.follow]);
+        }
+        plugin.emit('add-config-follower', {
+            to: config.follow,
+            from: self.id,
+        })
+        plugin.addListener('add-config-following', ({ to, newFollowing }) => {
+            if (to !== self.id) return;
+            setFollowing(newFollowing);
+        });
+
+        return () => {
+            plugin.removeListeners('add-config-following',)
+        }
+    }, [plugin, self, config]);
+
+    // events for follow user flow
     useEffect(() => {
         if (!plugin || !self || !app || !config) return;
         plugin.on('follow-init', ({ to, from }) => {
@@ -237,7 +277,7 @@ const MainProvider = ({ children }: { children: any }) => {
             if (!camera) return;
             app.setCamera(camera.point, camera.zoom, 'follow');
         }
-    }, [following, app])
+    }, [following, app]);
 
     return (
         <MainContext.Provider
