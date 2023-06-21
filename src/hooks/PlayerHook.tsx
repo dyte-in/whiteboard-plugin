@@ -141,7 +141,7 @@ export function UsePlayer(meetingId: string) {
         bindings: lBindings,
         assetShapes,
       })
-    }, [loading]), 5);
+    }, [loading]), 15);
 
     useEffect(() => {
         if (!data) return;
@@ -152,7 +152,7 @@ export function UsePlayer(meetingId: string) {
 
     const onChangePresence = throttle((app :TldrawApp, user: TDUser) => {
       updateUsers({ user, camera: app.camera }); 
-    }, 80)
+    }, 200)
 
     // image upload
     const handleImageUpload = async (_: TldrawApp, file: File, id: string) => {
@@ -198,5 +198,3 @@ export function UsePlayer(meetingId: string) {
         onChangePresence,
     };
 }
-
-// TODO: create a function for selecting throttle based on selected tool & following.
