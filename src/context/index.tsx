@@ -16,6 +16,7 @@ interface Data {
     shapes: Record<string, TDShape>,
     bindings: Record<string, TDBinding>,
     assets: Record<string, TDAsset>,
+    assetShapes?: Record<string, any>,
     id?: string,
 }
 
@@ -53,7 +54,7 @@ const MainProvider = ({ children }: { children: any }) => {
         if (!plugin) return;
         const drawingStore = plugin.stores.create('drawings');
         await drawingStore.set('shapes', data.shapes);
-        await drawingStore.set('assets', data.assets);
+        await drawingStore.set('assets', {assets: data.assets, assetShapes: data.assetShapes});
         await drawingStore.set('bindings', data.bindings);
         await drawingStore.set('currentId', self.id);
     };
@@ -64,7 +65,11 @@ const MainProvider = ({ children }: { children: any }) => {
             data.bindings ?? {},
             data.assets ?? {}
         );
-
+        app.replacePageContent(
+            {...data.shapes, ...data.assetShapes} ?? {},
+            data.bindings ?? {},
+            data.assets ?? {}
+        );
         // do not scale if config says no
         if (!config?.autoScaling) return;
         // do not scale if the changes were made by you
@@ -156,23 +161,22 @@ const MainProvider = ({ children }: { children: any }) => {
         })
         drawingStore.subscribe('*', (data) => {
             const shapes = data.shapes;
-            const assets = data.assets;
+            const assets = data.assets?.assets;
+            const assetShapes = data.assets?.assetShapes;
             const bindings = data.bindings;
             const id = data.currentId;
             setCurrId(id);
             setData({
                 shapes,
                 assets,
-                bindings
+                bindings,
+                assetShapes,
             });
         })
 
         // fetch and update config
         dytePlugin.room.addListener('config', ({ payload: { data } }) => {
-            setConfig({
-                ...config,
-                ...data
-            });
+            setConfig({ ...config, ...data });
         });
 
         // set plugin
@@ -185,11 +189,6 @@ const MainProvider = ({ children }: { children: any }) => {
             if (!plugin) return;
         }
     }, []);
-
-    useEffect(() => {
-        console.log('now following:', following);
-    }, [following])
-    
 
     // events for follow via config flow
     useEffect(() => {

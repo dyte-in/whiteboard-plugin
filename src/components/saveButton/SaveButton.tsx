@@ -7,7 +7,7 @@ import { fetchUrl, getFormData } from '../../utils/helpers';
 
 const SaveButton = () => {
     const [loading, setLoading] = useState<boolean>(false);
-    const { app, plugin, meetingId } = useContext(MainContext);
+    const { app, plugin, meetingId, setError } = useContext(MainContext);
 
     const handleExport = async () => {
         setLoading(true);
@@ -17,7 +17,14 @@ const SaveButton = () => {
             return;
         }
         const {formData } = getFormData(image, `meeting-${meetingId}`);
-        await fetchUrl(formData, plugin.authToken)
+        try {
+            await fetchUrl(formData, plugin.authToken)
+        } catch (e) {
+            setError({
+                message: 'Could not save board. Please try again later.'
+            })
+        }
+        
         setLoading(false);
     };
 

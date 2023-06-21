@@ -15,6 +15,7 @@ export function UsePlayer(meetingId: string) {
       plugin,
       config,
       setApp,
+      setError,
       followers,
       following,
       deleteUser,
@@ -93,48 +94,60 @@ export function UsePlayer(meetingId: string) {
         assets: Record<string, TDAsset | undefined>,
     ) => {
        if (loading) return;
-
        const lShapes = rLiveShapes.current;
        const lBindings = rLiveBindings.current;
        const lAssets = rLiveAssets.current;
-       Object.entries(shapes).forEach(([id, shape]) => {
+       const assetShapes: Record<string, any> = {};
+
+      Object.entries(shapes).forEach(([id, shape]) => {
         if (!shape) {
-          if (lShapes[id].name === 'Image') {
-            onAssetDelete(app, id);
-          }
-          delete lShapes[id]
-        } else {
-          lShapes[shape.id] = shape;
+          if (lShapes[id].type === 'image') onAssetDelete(app, lShapes[id].assetId);
+          delete lShapes[id];
         }
+        else lShapes[shape.id] = shape;
       })
       Object.entries(bindings).forEach(([id, binding]) => {
-        if (!binding) {
-          delete lBindings[id]
-        } else {
-          lBindings.set(binding.id, binding)
-        }
+        if (!binding) delete lBindings[id];
+        else lBindings.set(binding.id, binding);
       })
       Object.entries(assets).forEach(([id, asset]) => {
-        if (!asset) {
-          delete lAssets[id];
-        } else {
-          lAssets[asset.id] = asset;
+        if (!asset) delete lAssets[id];
+        else {
+          lAssets[asset.id] = { ...asset, fileName: (asset as any).name  };
+          if (lShapes[asset.id]) return;
+          assetShapes[asset.id] = {
+            id: asset.id,
+            type: 'image',
+            name: (asset as any).name,
+            parentId: 'page',
+            childIndex: 1,
+            point: [100, 100],
+            size: asset.size,
+            rotation: 0,
+            assetId: asset.id,
+            style: {
+                color: "black",
+                size: "small",
+                isFilled: false,
+                dash: "draw",
+                scale: 1
+            },
+          }
         }
       })
-
       updateData({
-        shapes: rLiveShapes.current,
-        assets: rLiveAssets.current,
-        bindings: rLiveBindings.current,
+        shapes: lShapes,
+        assets: lAssets,
+        bindings: lBindings,
+        assetShapes,
       })
-      
     }, [loading]), 5);
 
     useEffect(() => {
         if (!data) return;
         rLiveAssets.current = data.assets ?? {};
         rLiveBindings.current = data.bindings ?? {};
-        rLiveShapes.current = data.shapes ?? {};
+        rLiveShapes.current = {...data.shapes, ...data.assetShapes} ?? {};
     }, [data])
 
     const onChangePresence = throttle((app :TldrawApp, user: TDUser) => {
@@ -144,16 +157,25 @@ export function UsePlayer(meetingId: string) {
     // image upload
     const handleImageUpload = async (_: TldrawApp, file: File, id: string) => {
         const {formData } = getFormData(file, id);
-        return fetchUrl(formData, plugin.authToken) as Promise<string|false>;
+        try {
+          const url = await fetchUrl(formData, plugin.authToken);
+          return url as any;
+        } catch (e) {
+          setError({
+            message: 'Could not load image. Please try again.'
+          })
+        }
+        
     }
     const onAssetCreate = handleImageUpload;
     const onAssetUpload = handleImageUpload;
     const onAssetDelete = async (_: TldrawApp, assetId: string) => {
-    try {
+      try {
         await axios.delete(`${import.meta.env.VITE_API_BASE}/file/${assetId}`, {
-            headers: {"Authorization": `Bearer ${plugin.authToken}`},
-        });
-    } catch (e) {}
+          headers: {"Authorization": `Bearer ${plugin.authToken}`},
+      });
+      } catch (e) {}
+      
     }
 
     // line
