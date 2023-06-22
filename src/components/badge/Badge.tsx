@@ -19,11 +19,11 @@ const Badge = () => {
     const unfollow = () => {
         if (followers?.length) {
             followers.forEach((follower: TDUser) => {
-                plugin.emit('remote-unfollow', { to: follower, unfollow: following[0] });
+                plugin.emit('remote-unfollow', { unfollow: following[0] }, [follower]);
             });
         }
         following.forEach((user: string) => {
-            plugin.emit('unfollow', { to: user, from: self.id });
+            plugin.emit('unfollow', { from: self.id }, [user]);
         })
         setFollowing([]);
         setUser(undefined);
