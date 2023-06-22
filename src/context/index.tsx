@@ -60,11 +60,7 @@ const MainProvider = ({ children }: { children: any }) => {
     };
     useEffect(() => {
         if (!app || !data) return;
-        app.replacePageContent(
-            data.shapes ?? {},
-            data.bindings ?? {},
-            data.assets ?? {}
-        );
+        app.replacePageContent({}, data.bindings ?? {}, data.assets ?? {});
         app.replacePageContent(
             {...data.shapes, ...data.assetShapes} ?? {},
             data.bindings ?? {},
@@ -97,7 +93,6 @@ const MainProvider = ({ children }: { children: any }) => {
         if (!plugin) return;
         const userStore = plugin.stores.get('users');
         await userStore.delete(id);
-        // FIXME: remove this after web-core bug is fixed.
         const tempUsers = users ?? {};
         delete tempUsers[id];
         setUsers(tempUsers);
@@ -137,9 +132,9 @@ const MainProvider = ({ children }: { children: any }) => {
         // get drawings
         const drawingStore = dytePlugin.stores.create('drawings');
         const shapes = drawingStore.get('shapes');
-        const assets = drawingStore.get('assets');
+        const {assets, assetShapes} = drawingStore.get('assets') ?? { };
         const bindings = drawingStore.get('bindings');
-        setData({ shapes, assets, bindings });
+        setData({ shapes, assets, bindings, assetShapes });
 
         // get users 
         const userStore = dytePlugin.stores.create('users');
@@ -161,8 +156,7 @@ const MainProvider = ({ children }: { children: any }) => {
         })
         drawingStore.subscribe('*', (data) => {
             const shapes = data.shapes;
-            const assets = data.assets?.assets;
-            const assetShapes = data.assets?.assetShapes;
+            const {assets, assetShapes} = data.assets ?? {};
             const bindings = data.bindings;
             const id = data.currentId;
             setCurrId(id);
@@ -197,9 +191,8 @@ const MainProvider = ({ children }: { children: any }) => {
             if (to !== self.id) return;
             setFollowers([...followers, from]);
             plugin.emit('add-config-following', {
-                to: from,
                 newFollowing: [to, ...following],
-            })
+            }, [from])
         })
         return () => {
             plugin.removeListeners('add-config-follower');
@@ -214,9 +207,8 @@ const MainProvider = ({ children }: { children: any }) => {
         plugin.emit('add-config-follower', {
             to: config.follow,
             from: self.id,
-        })
-        plugin.addListener('add-config-following', ({ to, newFollowing }) => {
-            if (to !== self.id) return;
+        }, [config.follow])
+        plugin.addListener('add-config-following', ({ newFollowing }) => {
             setFollowing(newFollowing);
         });
 
@@ -229,35 +221,29 @@ const MainProvider = ({ children }: { children: any }) => {
     useEffect(() => {
         if (!plugin || !self || !app || !config) return;
         plugin.on('follow-init', ({ to, from }) => {
-            if (to !== self.id) return;
+            console.log('here......')
             // update followers
             setFollowers([ ...followers, from ]);
             plugin.emit('follow-resp', {
-                to: from,
                 from: [to, ...following],
-            });
+            }, [from]);
         });
-        plugin.on('follow-resp', ({ to, from }) => {
-            if (to !== self.id) return;
+        plugin.on('follow-resp', ({ from }) => {
             setFollowing([...following, ...from ]);
         });
-        plugin.on('unfollow', ({ to, from }) => {
-            if (to !== self.id) return;
+        plugin.on('unfollow', ({ from }) => {
             setFollowers(followers.filter(x => x !== from));
-
         });
-        plugin.on('remote-follow', ({ newFollowers, to }) => {
-            if (to !== self.id) return;
+        plugin.on('remote-follow', ({ newFollowers }) => {
             setFollowers([...followers, ...newFollowers])
         });
-        plugin.on('remote-unfollow', ({ to, unfollow }) => {
-            if (to !== self.id) return;
+        plugin.on('remote-unfollow', ({ unfollow }) => {
             const index = following.indexOf(unfollow);
             const tempFollowing = following;
             tempFollowing.splice(index, tempFollowing.length - 1);
             setFollowing([...tempFollowing]);
             following.forEach((user: string) => {
-                plugin.emit('unfollow', { to: user, from: self.id });
+                plugin.emit('unfollow', { from: self.id }, [user]);
             });   
         });
         return () => {
