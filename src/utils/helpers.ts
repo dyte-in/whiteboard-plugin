@@ -36,13 +36,8 @@ const fetchUrl = async (formData: FormData, authToken: string) => {
 }
 
 const randomColor = () => {
-    const rangeSize = 100;
-    const parts = [
-        Math.floor(Math.random()*256),
-        Math.floor(Math.random()*rangeSize),
-        Math.floor(Math.random()*rangeSize) + 256-rangeSize 
-    ].sort((a, b) => Math.random() < 0.5);
-    return '#' + parts.map( p => p.toString(16).padStart(2, "0") ).join('');
+    var color = Math.floor(Math.random()*16777215).toString(16);
+    return '#' + color;
 }
 
 export { randomColor, throttle, getFormData, fetchUrl };
