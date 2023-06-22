@@ -80,7 +80,8 @@ export function UsePlayer(meetingId: string) {
     // load initial data and user positions
     useEffect(() => {
         if (!app) return;
-        app.replacePageContent(data.shapes ?? {}, data.bindings ?? {}, data.assets ?? {});
+        app.replacePageContent({}, data.bindings ?? {}, data.assets ?? {});
+        app.replacePageContent({...data.shapes, ...data.assetShapes} ?? {}, data.bindings ?? {}, data.assets ?? {});
         Object.values(users).map((user: any) => {
           app?.updateUsers([user.user]);
       })

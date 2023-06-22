@@ -60,11 +60,7 @@ const MainProvider = ({ children }: { children: any }) => {
     };
     useEffect(() => {
         if (!app || !data) return;
-        app.replacePageContent(
-            data.shapes ?? {},
-            data.bindings ?? {},
-            data.assets ?? {}
-        );
+        app.replacePageContent({}, data.bindings ?? {}, data.assets ?? {});
         app.replacePageContent(
             {...data.shapes, ...data.assetShapes} ?? {},
             data.bindings ?? {},
@@ -97,7 +93,6 @@ const MainProvider = ({ children }: { children: any }) => {
         if (!plugin) return;
         const userStore = plugin.stores.get('users');
         await userStore.delete(id);
-        // FIXME: remove this after web-core bug is fixed.
         const tempUsers = users ?? {};
         delete tempUsers[id];
         setUsers(tempUsers);
@@ -137,9 +132,9 @@ const MainProvider = ({ children }: { children: any }) => {
         // get drawings
         const drawingStore = dytePlugin.stores.create('drawings');
         const shapes = drawingStore.get('shapes');
-        const assets = drawingStore.get('assets');
+        const {assets, assetShapes} = drawingStore.get('assets') ?? { };
         const bindings = drawingStore.get('bindings');
-        setData({ shapes, assets, bindings });
+        setData({ shapes, assets, bindings, assetShapes });
 
         // get users 
         const userStore = dytePlugin.stores.create('users');
@@ -161,8 +156,7 @@ const MainProvider = ({ children }: { children: any }) => {
         })
         drawingStore.subscribe('*', (data) => {
             const shapes = data.shapes;
-            const assets = data.assets?.assets;
-            const assetShapes = data.assets?.assetShapes;
+            const {assets, assetShapes} = data.assets ?? {};
             const bindings = data.bindings;
             const id = data.currentId;
             setCurrId(id);
