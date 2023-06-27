@@ -48,7 +48,6 @@ const Presence = () => {
             });
             plugin.emit('remote-follow', { newFollowers: followers  }, [user.metadata.id])
         }
-        console.log('emit to: ', user.metadata.id);
         plugin.emit('follow-init', {
             from: self.id,
         }, [user.metadata.id]);

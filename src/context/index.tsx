@@ -160,7 +160,6 @@ const MainProvider = ({ children }: { children: any }) => {
         const shapeStore = plugin.stores.create('shapes');
         const bindingStore = plugin.stores.create('bindings');
         assetStore.subscribe('*', (asset) => {
-            console.log('here....');
             const key = Object.keys(asset)[0];
             if (!asset[key]) {
                 try {
@@ -191,7 +190,6 @@ const MainProvider = ({ children }: { children: any }) => {
             resizeCanvas();
         })
         shapeStore.subscribe('*', (shape) => {
-            console.log('here....');
             const key = Object.keys(shape)[0];
             if (!shape[key]) {
                 try {
@@ -211,9 +209,7 @@ const MainProvider = ({ children }: { children: any }) => {
                     data?.bindings ?? {},
                     data?.assets ?? {}
                 );
-            } catch (e) {
-                console.log(e);
-            }
+            } catch (e) {}
             setData((d: any) => ({
                 ...d,
                 shapes: {
@@ -224,7 +220,6 @@ const MainProvider = ({ children }: { children: any }) => {
             resizeCanvas();
         })
         bindingStore.subscribe('*', (binding) => {
-            console.log('here....');
             const key = Object.keys(binding)[0];
             if (!binding[key]) {
                 try {
