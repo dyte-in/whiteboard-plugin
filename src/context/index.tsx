@@ -121,8 +121,6 @@ const MainProvider = ({ children }: { children: any }) => {
 
         // subscribe to store changes
         userStore.subscribe('*', (data) => {
-            const key = Object.keys(data)[0];
-            if (!data[key]) return;
             setUsers({ ...users,  ...data });
         })
 
@@ -152,8 +150,8 @@ const MainProvider = ({ children }: { children: any }) => {
         const selected = app?.selectedIds;
         // do not scale if someone is drawing
         if (selected?.length) return;
+        app?.zoomToContent();
         app?.zoomToFit();
-        app?.selectNone();
     }
     useEffect(() => {
         if (!app || !plugin) return;
@@ -205,7 +203,11 @@ const MainProvider = ({ children }: { children: any }) => {
                 return;
             }
             try {
-                app.create(Object.values(shape));
+                app.replacePageContent(
+                    {...data?.shapes, ...shape },
+                    data?.bindings ?? {},
+                    data?.assets ?? {}
+                );
             } catch (e) {}
             setData((d: any) => ({
                 ...d,
@@ -231,7 +233,11 @@ const MainProvider = ({ children }: { children: any }) => {
                 return;
             }
             try {
-                app.create(Object.values(binding));
+                app.replacePageContent(
+                    data?.shapes ?? {},
+                    { ...data?.bindings, ...binding },
+                    data?.assets ?? {}
+                );
             } catch (e) {}
             setData((d: any) => ({
                 ...d,
