@@ -50,7 +50,6 @@ const Presence = () => {
         }
         console.log('emit to: ', user.metadata.id);
         plugin.emit('follow-init', {
-            to: user.metadata.id,
             from: self.id,
         }, [user.metadata.id]);
     }

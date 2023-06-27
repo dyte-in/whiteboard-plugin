@@ -1,5 +1,34 @@
-import { TldrawApp } from "@tldraw/tldraw";
 import axios from "axios";
+
+interface DebounceObj {
+    'onPageChange'?: {
+        cb: any,
+        timeout: NodeJS.Timeout,
+    }
+}
+
+const debounceObj: DebounceObj = {};
+
+const debounce = (cb: any, delay: number) => {
+    return (...args: any) => {
+        const obj = debounceObj['onPageChange'];
+        if (!obj) {
+            debounceObj['onPageChange'] = {
+                cb,
+                timeout: setTimeout(function() {
+                    cb(...args);
+                }, delay)
+            }
+        }
+        if (obj) {
+            obj.cb = cb;
+            clearTimeout(obj.timeout);
+            obj.timeout = setTimeout(function () {
+                cb(...args);
+            }, delay)
+        }
+    }
+}
 
 const throttle = (cb: any, delay: number) => {
     let previousCall = new Date().getTime();
@@ -40,4 +69,4 @@ const randomColor = () => {
     return '#' + color;
 }
 
-export { randomColor, throttle, getFormData, fetchUrl };
+export { randomColor, debounce, throttle, getFormData, fetchUrl };

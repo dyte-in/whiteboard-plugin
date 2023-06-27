@@ -1,5 +1,5 @@
 import DytePlugin from '@dytesdk/plugin-sdk';
-import { TDAsset, TDBinding, TDShape, TDUser, TldrawApp } from '@tldraw/tldraw';
+import { TDUser, TldrawApp } from '@tldraw/tldraw';
 import React, { useEffect, useState } from 'react'
 
 const MainContext = React.createContext<any>({});
@@ -13,11 +13,9 @@ export interface User {
 }
 
 interface Data {
-    shapes: Record<string, TDShape>,
-    bindings: Record<string, TDBinding>,
-    assets: Record<string, TDAsset>,
-    assetShapes?: Record<string, any>,
-    id?: string,
+    shapes: {[key: string]: any},
+    assets: {[key: string]: any},
+    bindings: {[key: string]: any},
 }
 
 interface DyteError {
@@ -41,47 +39,12 @@ const MainProvider = ({ children }: { children: any }) => {
     const [peers, setPeers] = useState<User[]>();
     const [followers, setFollowers] = useState<string[]>([]);
     const [following, setFollowing] = useState<string[]>([]);
-    const [currId, setCurrId] = useState<string>('');
     const [error, setError] = useState<DyteError>();
     const [config, setConfig] = useState<Config>({
         autoScaling: true,
         follow: '',
         role: 'editor',
     });
-
-    // update drawing store
-    const updateData = async (data: Data) => {
-        if (!plugin) return;
-        const drawingStore = plugin.stores.create('drawings');
-        await drawingStore.set('shapes', data.shapes);
-        await drawingStore.set('assets', {assets: data.assets, assetShapes: data.assetShapes});
-        await drawingStore.set('bindings', data.bindings);
-        await drawingStore.set('currentId', self.id);
-    };
-    useEffect(() => {
-        if (!app || !data) return;
-        app.replacePageContent({}, data.bindings ?? {}, data.assets ?? {});
-        app.replacePageContent(
-            {...data.shapes, ...data.assetShapes} ?? {},
-            data.bindings ?? {},
-            data.assets ?? {}
-        );
-        // do not scale if config says no
-        if (!config?.autoScaling) return;
-        // do not scale if the changes were made by you
-        if (currId === self.id) return;
-        // do not scale if you are following someone
-        if (following?.length) return;
-        // auto scaling content
-        const selected = app.selectedIds;
-        // do not scale if someone is drawing
-        if (selected.length) return;
-        const keys = Object.keys(data.shapes ?? {});
-        app.select(...keys);
-        app.zoomToSelection();
-        app.zoomToFit();
-        app.select();
-    }, [data]);
 
     // update user store
     const updateUsers = async (user: User) => {
@@ -126,20 +89,24 @@ const MainProvider = ({ children }: { children: any }) => {
         const dytePlugin = DytePlugin.init({ ready: false });
 
         // populate stores
-        await dytePlugin.stores.populate('drawings');
         await dytePlugin.stores.populate('users');
+        await dytePlugin.stores.populate('assets');
+        await dytePlugin.stores.populate('shapes');
+        await dytePlugin.stores.populate('bindings');
 
-        // get drawings
-        const drawingStore = dytePlugin.stores.create('drawings');
-        const shapes = drawingStore.get('shapes');
-        const {assets, assetShapes} = drawingStore.get('assets') ?? { };
-        const bindings = drawingStore.get('bindings');
-        setData({ shapes, assets, bindings, assetShapes });
+        const assetStore = dytePlugin.stores.create('assets');
+        const shapeStore = dytePlugin.stores.create('shapes');
+        const bindingStore = dytePlugin.stores.create('bindings');
+        const shapes = shapeStore.getAll();
+        const bindings = bindingStore.getAll();
+        const assets = assetStore.getAll();
+        setData({ shapes, assets, bindings });
 
         // get users 
         const userStore = dytePlugin.stores.create('users');
         const users = userStore.getAll();
         setUsers(users);
+        setPeers(Object.values(users));
 
         // get self
         const { payload: { peer }} = await dytePlugin.room.getPeer();
@@ -153,19 +120,6 @@ const MainProvider = ({ children }: { children: any }) => {
         // subscribe to store changes
         userStore.subscribe('*', (data) => {
             setUsers({ ...users,  ...data });
-        })
-        drawingStore.subscribe('*', (data) => {
-            const shapes = data.shapes;
-            const {assets, assetShapes} = data.assets ?? {};
-            const bindings = data.bindings;
-            const id = data.currentId;
-            setCurrId(id);
-            setData({
-                shapes,
-                assets,
-                bindings,
-                assetShapes,
-            });
         })
 
         // fetch and update config
@@ -184,28 +138,148 @@ const MainProvider = ({ children }: { children: any }) => {
         }
     }, []);
 
-    // events for follow via config flow
+    // update plugin data
+    const resizeCanvas = () => {
+        // do not scale if config says no
+        if (!config?.autoScaling) return;
+        // do not scale if you are following someone
+        if (following?.length) return;
+        // auto scaling content
+        const selected = app?.selectedIds;
+        // do not scale if someone is drawing
+        if (selected?.length) return;
+        const keys = Object.keys(data?.shapes ?? {});
+        app?.select(...keys);
+        app?.zoomToSelection();
+        app?.zoomToFit();
+        app?.select();
+    }
+    useEffect(() => {
+        if (!app || !plugin) return;
+        const assetStore = plugin.stores.create('assets');
+        const shapeStore = plugin.stores.create('shapes');
+        const bindingStore = plugin.stores.create('bindings');
+        assetStore.subscribe('*', (asset) => {
+            console.log('here....');
+            const key = Object.keys(asset)[0];
+            if (!asset[key]) {
+                try {
+                    app.delete([key]);
+                } catch (e) {};
+                setData((d) => {
+                    let tempD = d;
+                    delete tempD?.assets[key];
+                    if (!tempD) return undefined;
+                    return {...tempD};
+                })
+                return;
+            }
+            try {
+                app.replacePageContent(
+                    data?.shapes ?? {},
+                    data?.bindings ?? {},
+                    {...data?.assets, ...asset},
+                );
+            } catch (e) {}
+            setData((d: any) => ({
+                ...d,
+                assets: {
+                    ...d.assets,
+                    ...asset
+                }
+            }));
+            resizeCanvas();
+        })
+        shapeStore.subscribe('*', (shape) => {
+            console.log('here....');
+            const key = Object.keys(shape)[0];
+            if (!shape[key]) {
+                try {
+                    app.delete([key]);
+                } catch (e) {};
+                setData((d) => {
+                    let tempD = d;
+                    delete tempD?.assets[key];
+                    if (!tempD) return undefined;
+                    return {...tempD};
+                })
+                return;
+            }
+            try {
+                app.replacePageContent(
+                    {...data?.shapes, ...shape },
+                    data?.bindings ?? {},
+                    data?.assets ?? {}
+                );
+            } catch (e) {
+                console.log(e);
+            }
+            setData((d: any) => ({
+                ...d,
+                shapes: {
+                    ...d.shapes,
+                    ...shape
+                }
+            }));
+            resizeCanvas();
+        })
+        bindingStore.subscribe('*', (binding) => {
+            console.log('here....');
+            const key = Object.keys(binding)[0];
+            if (!binding[key]) {
+                try {
+                    app.delete([key]);
+                } catch (e) {};
+                setData((d) => {
+                    let tempD = d;
+                    delete tempD?.assets[key];
+                    if (!tempD) return undefined;
+                    return {...tempD};
+                })
+                return;
+            }
+            try {
+                app.replacePageContent(
+                    data?.shapes ?? {},
+                    { ...data?.bindings, ...binding },
+                    data?.assets ?? {}
+                );
+            } catch (e) {}
+            setData((d: any) => ({
+                ...d,
+                bindings: {
+                    ...d.bindings,
+                    ...binding
+                }
+            }));
+            resizeCanvas();
+        })
+        return () => {
+            assetStore.unsubscribe('*');
+            shapeStore.unsubscribe('*');
+            bindingStore.unsubscribe('*');
+        }
+    }, [app, plugin, config, following, data])
+
+    // follow user via config
     useEffect(() => {
         if (!plugin || !self) return;
-        plugin.addListener('add-config-follower', ({ to, from }) => {
-            if (to !== self.id) return;
+        plugin.addListener('add-config-follower', ({ from }) => {
             setFollowers([...followers, from]);
             plugin.emit('add-config-following', {
-                newFollowing: [to, ...following],
+                newFollowing: [self.id, ...following],
             }, [from])
         })
         return () => {
             plugin.removeListeners('add-config-follower');
         }
     }, [plugin, self, followers, following]);
-
     useEffect(() => {
         if (!config.follow || !self || !plugin) return;
         if (config.follow && self.id !== config.follow) {
             setFollowing([config.follow]);
         }
         plugin.emit('add-config-follower', {
-            to: config.follow,
             from: self.id,
         }, [config.follow])
         plugin.addListener('add-config-following', ({ newFollowing }) => {
@@ -217,15 +291,14 @@ const MainProvider = ({ children }: { children: any }) => {
         }
     }, [plugin, self, config]);
 
-    // events for follow user flow
+    // follow users and manage followers
     useEffect(() => {
         if (!plugin || !self || !app || !config) return;
-        plugin.on('follow-init', ({ to, from }) => {
-            console.log('here......')
+        plugin.on('follow-init', ({ from }) => {
             // update followers
             setFollowers([ ...followers, from ]);
             plugin.emit('follow-resp', {
-                from: [to, ...following],
+                from: [self.id, ...following],
             }, [from]);
         });
         plugin.on('follow-resp', ({ from }) => {
@@ -279,9 +352,9 @@ const MainProvider = ({ children }: { children: any }) => {
                 following,
                 followers,
                 setApp,
+                setData,
                 setError,
                 deleteUser,
-                updateData,
                 updateUsers,  
                 setFollowing,
                 setFollowers,

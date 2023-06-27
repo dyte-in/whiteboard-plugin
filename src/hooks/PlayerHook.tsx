@@ -1,8 +1,9 @@
 import { MainContext } from '../context';
-import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { fetchUrl, getFormData, randomColor, throttle } from '../utils/helpers';
-import { TDAsset, TDBinding, TDShape, TDUser, TDUserStatus, TldrawApp } from '@tldraw/tldraw';
+import React, { useCallback, useContext, useEffect, useRef, useState } from 'react'
+import { fetchUrl, getFormData, randomColor, throttle, debounce } from '../utils/helpers';
+import { TDBinding, TDShape, TDUser, TDUserStatus, TldrawApp } from '@tldraw/tldraw';
 import axios from 'axios';
+import { DyteStore } from '@dytesdk/plugin-sdk';
 
 
 export function UsePlayer(meetingId: string) {
@@ -15,20 +16,17 @@ export function UsePlayer(meetingId: string) {
       plugin,
       config,
       setApp,
+      setData,
       setError,
       followers,
       following,
       deleteUser,
-      updateData,
       updateUsers,
       setFollowing,
       setFollowers,
     } = useContext(MainContext);
    
     const rIsPaused = useRef(false);
-    const rLiveShapes = useRef<Record<string, any>>({});
-    const rLiveAssets = useRef<Record<string, any>>({});
-    const rLiveBindings = useRef<Record<string, any>>({});
 
     const [loading, setLoading] = useState<boolean>(true);
 
@@ -41,12 +39,12 @@ export function UsePlayer(meetingId: string) {
         const color = randomColor();
         const user = {
             id: tlApp.currentUser!.id,
-            point: [100, 100],
+            point: [50, 50],
             color,
             status: TDUserStatus.Connected,
             activeShapes: [],
             selectedIds: [],
-            metadata: { name: self.name, id: self.id },
+            metadata: { name: self?.name, id: self?.id },
         };
        
         // update user
@@ -65,6 +63,10 @@ export function UsePlayer(meetingId: string) {
     // update users when a peer leaves
     useEffect(() => {
         plugin.room.on('peerLeft', ({payload: { id }}: { payload: { id: string }}) => {
+          const delUser = users[id]?.user?.id;
+          if (delUser) {
+            (app as TldrawApp).removeUser(delUser)
+          }
           deleteUser(id);
           setFollowers(() => followers.filter((x: string) => x !== id));
           const index = following.indexOf(id);
@@ -75,81 +77,101 @@ export function UsePlayer(meetingId: string) {
         return () => {
             plugin.room.removeListeners('peerLeft');
         }
-    }, [config])
+    }, [config, app])
 
     // load initial data and user positions
     useEffect(() => {
         if (!app) return;
-        app.replacePageContent({}, data.bindings ?? {}, data.assets ?? {});
-        app.replacePageContent({...data.shapes, ...data.assetShapes} ?? {}, data.bindings ?? {}, data.assets ?? {});
+        app.replacePageContent(
+          {},
+          data.bindings ?? {},
+          data.assets ?? {}
+        );
+        app.replacePageContent(
+          data.shapes ?? {},
+          data.bindings ?? {},
+          data.assets ?? {},
+        );
         Object.values(users).map((user: any) => {
           app?.updateUsers([user.user]);
-      })
+        })
     }, [app])
 
     // update remote users when something is drawn
-    const onChangePage = throttle(useCallback((
+    const onChangePage = debounce(useCallback((
         app: TldrawApp,
         shapes: Record<string, TDShape | undefined>,
         bindings: Record<string, TDBinding | undefined>,
-        assets: Record<string, TDAsset | undefined>,
     ) => {
-       if (loading) return;
-       const lShapes = rLiveShapes.current;
-       const lBindings = rLiveBindings.current;
-       const lAssets = rLiveAssets.current;
-       const assetShapes: Record<string, any> = {};
+      if (loading) return;
+      const assetStore = plugin.stores.get('assets') as DyteStore;
+      const shapeStore = plugin.stores.get('shapes') as DyteStore;
+      const bindingStore = plugin.stores.get('bindings') as DyteStore;
 
-      Object.entries(shapes).forEach(([id, shape]) => {
-        if (!shape) {
-          if (lShapes[id].type === 'image') onAssetDelete(app, lShapes[id].assetId);
-          delete lShapes[id];
-        }
-        else lShapes[shape.id] = shape;
-      })
-      Object.entries(bindings).forEach(([id, binding]) => {
-        if (!binding) delete lBindings[id];
-        else lBindings.set(binding.id, binding);
-      })
-      Object.entries(assets).forEach(([id, asset]) => {
-        if (!asset) delete lAssets[id];
-        else {
-          lAssets[asset.id] = { ...asset, fileName: (asset as any).name  };
-          if (lShapes[asset.id]) return;
-          assetShapes[asset.id] = {
-            id: asset.id,
-            type: 'image',
-            name: (asset as any).name,
-            parentId: 'page',
-            childIndex: 1,
-            point: [100, 100],
-            size: asset.size,
-            rotation: 0,
-            assetId: asset.id,
-            style: {
-                color: "black",
-                size: "small",
-                isFilled: false,
-                dash: "draw",
-                scale: 1
-            },
+      // Assets: Add
+      app.assets.forEach(async (asset) => {
+        if (data && data.assets[asset.id]) return;
+        await assetStore.set(asset.id, asset);
+        const shape = app.getShape(asset.id);
+        setData((d: any) => ({ 
+          ...d, 
+          assets: {
+            ...d.assets,
+            [asset.id]: asset 
+          },
+          shapes: {
+            ...d.shapes,
+            [asset.id]: shape,
           }
+        }));
+        await shapeStore.set(asset.id, shape);
+      })
+      // Shapes: Add & Delete | Assets: Delete
+      Object.entries(shapes).forEach((shape) => {
+        const key = shape[0];
+        const val = shape[1];
+        if (val) {
+          setData((d: any) => ({
+            ...d,
+            shapes: {
+              ...d.shapes,
+              [key]: val 
+            }
+          }))
+          shapeStore.set(key, val);
+        } else {
+          setData((d: any) => {
+            const tempData = d;
+            delete tempData.shapes[key];
+            delete tempData.assets[key];
+            return tempData;
+          })
+          shapeStore.delete(key);
+        }
+      });
+      // Bindings: Add & Delete
+      Object.entries(bindings).forEach((binding) => {
+        const key = binding[0];
+        const val = binding[1];
+        if (val) {
+          setData((d: any) => ({
+            ...d,
+            bindings: {
+              ...d.bindings,
+              [key]: val 
+            }
+          }))
+          bindingStore.set(key, val);
+        } else {
+          setData((d: any) => {
+            const tempData = d;
+            delete tempData.bindings[key];
+            return tempData;
+          })
+          bindingStore.delete(key);
         }
       })
-      updateData({
-        shapes: lShapes,
-        assets: lAssets,
-        bindings: lBindings,
-        assetShapes,
-      })
-    }, [loading]), 15);
-
-    useEffect(() => {
-        if (!data) return;
-        rLiveAssets.current = data.assets ?? {};
-        rLiveBindings.current = data.bindings ?? {};
-        rLiveShapes.current = {...data.shapes, ...data.assetShapes} ?? {};
-    }, [data])
+    }, [loading]), 500);
 
     const onChangePresence = throttle((app :TldrawApp, user: TDUser) => {
       updateUsers({ user, camera: app.camera }); 
