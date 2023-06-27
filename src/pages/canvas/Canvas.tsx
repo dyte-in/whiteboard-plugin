@@ -2,12 +2,8 @@ import './canvas.css';
 import { Tldraw } from '@tldraw/tldraw';
 import { MainContext } from '../../context';
 import { UsePlayer } from '../../hooks/PlayerHook';
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext } from 'react';
 import CustomCursor from '../../components/cursor/CustomCursor';
-import SaveButton from '../../components/saveButton/SaveButton';
-import Presence from '../../components/presence/Presence';
-import Badge from '../../components/badge/Badge';
-import ErrorModal from '../../components/error/Error'
 
 const Canvas = () => {
   const { meetingId } = useContext(MainContext);
@@ -24,12 +20,12 @@ const Canvas = () => {
             autofocus
             showPages={false}
         />
-        <div className="header-elements">
+        {/* <div className="header-elements">
           <SaveButton />
           <Presence />
         </div>
         <Badge />
-        <ErrorModal />
+        <ErrorModal /> */}
     </div>
   )
 }
