@@ -102,15 +102,17 @@ const MainProvider = ({ children }: { children: any }) => {
         const assets = assetStore.getAll();
         setData({ shapes, assets, bindings });
 
-        // get users 
-        const userStore = dytePlugin.stores.create('users');
-        const users = userStore.getAll();
-        setUsers(users);
-        setPeers(Object.values(users));
-
         // get self
         const { payload: { peer }} = await dytePlugin.room.getPeer();
         setSelf(peer);
+
+        // get users 
+        const userStore = dytePlugin.stores.create('users');
+        const users = userStore.getAll();
+        delete users[peer.id]
+        setUsers({...users});
+        setPeers(Object.values({...users}));
+
 
         // get meeting ID
         const { payload: { roomName }} = await dytePlugin.room.getID();
