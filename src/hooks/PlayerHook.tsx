@@ -1,7 +1,7 @@
 import { MainContext } from '../context';
 import React, { useCallback, useContext, useEffect, useState } from 'react'
-import { fetchUrl, getFormData, randomColor, debounce } from '../utils/helpers';
-import { TDAsset, TDBinding, TDShape, TDUserStatus, TldrawApp } from '@tldraw/tldraw';
+import { fetchUrl, getFormData, randomColor, debounce, createShapeObj } from '../utils/helpers';
+import { TDAsset, TDAssets, TDBinding, TDShape, TDUserStatus, TldrawApp } from '@tldraw/tldraw';
 import axios from 'axios';
 
 
@@ -40,7 +40,23 @@ export function UsePlayer(meetingId: string) {
   // update canvas on load
   useEffect(() => {
     if (!app) return;
-    // TODO: get store data from plugin and populate app.
+
+    // populate data
+    const AssetStore = plugin.stores.create('assets');
+    const ShapeStore = plugin.stores.create('shapes');
+    const BindingStore = plugin.stores.create('bindings');
+
+    const assets: TDAssets = AssetStore.getAll() ?? {};
+    let shapes = ShapeStore.getAll() ?? {};
+    const bindings = BindingStore.getAll() ?? {};
+
+    app.patchAssets(assets);
+    Object.values(assets).map((asset: TDAsset) => {
+      if (shapes[asset.id]) return;
+      const shape = createShapeObj(asset, app.viewport);
+      shapes[asset.id] = shape;
+    });
+    app.replacePageContent(shapes, bindings, assets);
   }, [app])
 
   // update store users when something is drawn
@@ -58,21 +74,20 @@ export function UsePlayer(meetingId: string) {
     Object.entries(assets).map((asset) => {
       if (asset[1]) {
         AssetStore.set(asset[0], asset[1]);
-        return;
       }
-      handleImageDelete(asset[0]);
-      const isAsset = AssetStore.get(asset[0]);
-      if (!isAsset) return;
-      AssetStore.delete(asset[0]);
     })
-    Object.entries(shapes).map((shape) => {
+    Object.entries(shapes).map(async (shape) => {
       if (shape[1]) {
         if (!assets[shape[0]]) ShapeStore.set(shape[0], shape[1]);
         return;
       }
       const isShape = ShapeStore.get(shape[0]);
-      if (!isShape) return;
-      ShapeStore.delete(shape[0]);
+      const isAsset = AssetStore.get(shape[0]);
+      if (isShape || isAsset) await ShapeStore.delete(shape[0]);
+      if (isAsset) {
+        await AssetStore.delete(shape[0]);
+        await handleImageDelete(shape[0]);
+      }
     })
     Object.entries(bindings).map((binding) => {
       if (binding[1]) {
@@ -80,9 +95,10 @@ export function UsePlayer(meetingId: string) {
         return;
       }
       const isBinding = BindingStore.get(binding[0]);
-      if (!isBinding) return;
-      BindingStore.delete(binding[0]);
+      if (isBinding) BindingStore.delete(binding[0]);
     })
+    app.selectTool('select');
+    app.selectNone();
   }, [loading]), 250);
 
   // image upload

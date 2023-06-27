@@ -44,6 +44,15 @@ const MainProvider = ({ children }: { children: any }) => {
 
 
     // update canvas when a remote user draws
+    const resizeCanvas = () => {
+        const selected = app?.selectedIds;
+        // do not scale if someone is drawing
+        if (selected?.length) return;
+        app?.selectAll();
+        app?.zoomToSelection();
+        app?.zoomToFit();
+        app?.selectNone();
+    }
     useEffect(() => {
         if (!plugin || !app) return;
 
@@ -53,6 +62,7 @@ const MainProvider = ({ children }: { children: any }) => {
 
         AssetStore.subscribe('*', (asset) => {
             const key = Object.keys(asset)[0];
+            const selected = app?.selectedIds;
             if (asset[key]) {
                 app.patchAssets(asset);
                 let shape: TDShape;
@@ -61,33 +71,45 @@ const MainProvider = ({ children }: { children: any }) => {
                 }  else shape = createShapeObj(asset[key], app.viewport);
                 if (shape) {
                     app.patchCreate([shape]);
+                    app.select(...selected);
                     delete assetArchive[key];
                 }
+                resizeCanvas();
                 return;
             }
-            app.delete([key]);
         })
         ShapeStore.subscribe('*', (shape) => {
             const key = Object.keys(shape)[0];
+            const selected = app?.selectedIds;
             if (shape[key]) {
                 if (shape[key].assetId && !app.document.assets[key]) {
                     assetArchive[key] = shape[key];
                     return;
                 }
                 app.patchCreate([shape[key]])
-                app.selectNone();
+                app.select(...selected);
+                resizeCanvas();
                 return;
             } 
-            app.delete([key]);
+            try {
+                app.delete([key]);
+                app.select(...selected);
+                resizeCanvas();
+            } catch (e) {
+                console.log('element does not exist.');
+            }
         })
         BindingStore.subscribe('*', (binding) => {
             const key = Object.keys(binding)[0];
+            const selected = app?.selectedIds;
             if (binding[key]) {
                 app.patchCreate(undefined, [binding[key]]);
-                app.selectNone();
+                app.select(...selected);
+                resizeCanvas();
                 return;
             }
             app.delete([key]);
+            resizeCanvas();
         })
 
         return () => {
@@ -114,4 +136,3 @@ const MainProvider = ({ children }: { children: any }) => {
 
 export { MainContext, MainProvider } 
 
- // TODO: Find an alternative for app.delete.
