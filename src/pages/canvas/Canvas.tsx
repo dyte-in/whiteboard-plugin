@@ -4,6 +4,8 @@ import { MainContext } from '../../context';
 import { UsePlayer } from '../../hooks/PlayerHook';
 import React, { useContext } from 'react';
 import CustomCursor from '../../components/cursor/CustomCursor';
+import SaveButton from '../../components/saveButton/SaveButton';
+import Presence from '../../components/presence/Presence';
 
 const Canvas = () => {
   const { meetingId } = useContext(MainContext);
@@ -20,11 +22,11 @@ const Canvas = () => {
             autofocus
             showPages={false}
         />
-        {/* <div className="header-elements">
+        <div className="header-elements">
           <SaveButton />
           <Presence />
         </div>
-        <Badge />
+        {/* <Badge />
         <ErrorModal /> */}
     </div>
   )

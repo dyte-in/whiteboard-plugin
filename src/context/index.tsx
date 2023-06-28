@@ -44,11 +44,6 @@ const MainProvider = ({ children }: { children: any }) => {
         }
     }, []);
 
-    useEffect(() => {
-        console.log(users);
-    }, [users])
-
-
     // update users
     useEffect(() => {
         if (!app || !plugin) return;

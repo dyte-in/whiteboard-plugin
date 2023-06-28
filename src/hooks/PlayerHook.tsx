@@ -70,7 +70,7 @@ export function UsePlayer(meetingId: string) {
     Object.values(userData).map((user) => {
       app.updateUsers([user]);
     })
-  }, [app])
+  }, [app]);
 
   // update store users when something is drawn
   const onChangePage = debounce(useCallback((
@@ -117,7 +117,7 @@ export function UsePlayer(meetingId: string) {
   // update other users when I move
   const onChangePresence = throttle((app :TldrawApp, user: TDUser) => {
     plugin.emit('onMove', { user, camera: app.camera })
-  }, 200)
+  }, 200);
 
   // image upload
   const handleImageUpload = async (_: TldrawApp, file: File, id: string) => {
@@ -126,14 +126,14 @@ export function UsePlayer(meetingId: string) {
         const url = await fetchUrl(formData, plugin.authToken);
         return url as any;
       } catch (e) { console.log(e) }
-  }
+  };
   const handleImageDelete = async (id: string) => {
     try {
       await axios.delete(`${import.meta.env.VITE_API_BASE}/file/${id}`, {
         headers: {"Authorization": `Bearer ${plugin.authToken}`},
     });
     } catch (e) {}
-  }
+  };
   const onAssetCreate = handleImageUpload;
   const onAssetUpload = handleImageUpload;
 
