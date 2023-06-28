@@ -6,6 +6,7 @@ import React, { useContext } from 'react';
 import CustomCursor from '../../components/cursor/CustomCursor';
 import SaveButton from '../../components/saveButton/SaveButton';
 import Presence from '../../components/presence/Presence';
+import ErrorModal from '../../components/error/Error';
 import Badge from '../../components/badge/Badge';
 
 const Canvas = () => {
@@ -28,8 +29,7 @@ const Canvas = () => {
           <Presence />
         </div>
         <Badge />
-        {/* 
-        <ErrorModal /> */}
+        <ErrorModal />
     </div>
   )
 }

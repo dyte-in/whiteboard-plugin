@@ -13,6 +13,7 @@ interface Config {
 const MainProvider = ({ children }: { children: any }) => {
     const [self, setSelf] = useState<any>();
     const [app, setApp] = useState<TldrawApp>();
+    const [error, setError] = useState<string>('');
     const [plugin, setPlugin] = useState<DytePlugin>();
     const [meetingId, setMeetingId] = useState<string>('');
     const [following, setFollowing] = useState<string[]>([]);
@@ -63,10 +64,13 @@ const MainProvider = ({ children }: { children: any }) => {
         const UserStore = plugin.stores.create('users');
         UserStore.subscribe('*', (user) => {
             const key = Object.keys(user)[0];
-            if (user[key]) {
-                app.updateUsers([user[key]]);
-                setUsers((u) => ({ ...u, ...user }));
-            } 
+            if (!user[key] || !user[key].id) {
+                setError('Could not load user.');
+                return;
+            }
+            app.updateUsers([user[key]]);
+            setUsers((u) => ({ ...u, ...user }));
+           
         });
         return () => {
             UserStore.unsubscribe('*');
@@ -76,10 +80,15 @@ const MainProvider = ({ children }: { children: any }) => {
         if (!app || !plugin) return;
         plugin.addListener('onMove', ({ user, camera }) => {
             // move user
+            if (!user || !user.id) {
+                setError('Could not load user.');
+                return;
+            }
             app.updateUsers([user]);
             // pan the camera if following user
             const followID = following[following?.length - 1];
             if (!followID || followID !== user.metadata.id) return;
+            if (!camera) return;
             app.setCamera(camera.point, camera.zoom, 'follow');
         })
         return () => {
@@ -91,7 +100,7 @@ const MainProvider = ({ children }: { children: any }) => {
         plugin.room.on('peerLeft', ({payload: { id }}) => {
             const UserStore = plugin.stores.get('users');
             const user = users[id];
-            if (!user) return;
+            if (!user || !user.id) return;
             // remove from app
             app.removeUser(user.id);
             // remove from store
@@ -122,7 +131,7 @@ const MainProvider = ({ children }: { children: any }) => {
 
         AssetStore.subscribe('*', (asset) => {
             const key = Object.keys(asset)[0];
-            const selectedIds = app.selectedIds;
+            const selectedIds = app.selectedIds ?? [];
             if (asset[key]) {
                 app.patchAssets(asset);
                 let shape: TDShape;
@@ -130,8 +139,9 @@ const MainProvider = ({ children }: { children: any }) => {
                     shape = assetArchive[key];
                 }  else shape = createShapeObj(asset[key], app.viewport);
                 if (shape) {
+                    // NOTE: if this fails the app can crash
                     app.patchCreate([shape]);
-                    app.select(...selectedIds);
+                    try { app.select(...selectedIds) } catch (e) {}
                     delete assetArchive[key];
                 }
                 return;
@@ -139,31 +149,29 @@ const MainProvider = ({ children }: { children: any }) => {
         })
         ShapeStore.subscribe('*', (shape) => {
             const key = Object.keys(shape)[0];
-            const selectedIds = app.selectedIds;
+            const selectedIds = app.selectedIds ?? [];
             if (shape[key]) {
                 if (shape[key].assetId && !app.document.assets[key]) {
                     assetArchive[key] = shape[key];
                     return;
                 }
+                // NOTE: if this fails the app can crash
                 app.patchCreate([shape[key]])
-                app.select(...selectedIds);
+                try { app.select(...selectedIds) } catch (e) {}
                 return;
             } 
-            try {
-                app.delete([key]);
-            } catch (e) {
-                console.log('element does not exist.');
-            }
+            try { app.delete([key]) } catch (e) {}
         })
         BindingStore.subscribe('*', (binding) => {
             const key = Object.keys(binding)[0];
-            const selectedIds = app.selectedIds;
+            const selectedIds = app.selectedIds ?? [];
             if (binding[key]) {
+                // NOTE: if this fails the app can crash
                 app.patchCreate(undefined, [binding[key]]);
-                app.select(...selectedIds);
+                try { app.select(...selectedIds) } catch (e) {}
                 return;
             }
-            app.delete([key]);
+            try { app.delete([key]) } catch (e) {}
         })
 
         return () => {
@@ -179,9 +187,11 @@ const MainProvider = ({ children }: { children: any }) => {
                 app,
                 self,
                 users,
+                error,
                 plugin,
                 config,
                 setApp,
+                setError,
                 setUsers,
                 meetingId,
                 following,

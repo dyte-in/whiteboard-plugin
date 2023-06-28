@@ -7,16 +7,17 @@ import axios from 'axios';
 
 export function UsePlayer(meetingId: string) {
   const [loading, setLoading] = useState<boolean>(true);
-  const { app, plugin, setApp, self, users, setUsers } = useContext(MainContext);
+  const { app, plugin, setApp, self, setUsers, setError } = useContext(MainContext);
   
   // load app
   const onMount = (tlApp: TldrawApp) => {
       // load room
-      tlApp.loadRoom(meetingId);
+      tlApp.loadRoom(meetingId ?? 'my-meeting-room');
 
       // create user
       const color = randomColor();
-      const user = {
+
+      const user: TDUser = {
           id: tlApp.currentUser!.id,
           point: [50, 50],
           color,
@@ -27,10 +28,12 @@ export function UsePlayer(meetingId: string) {
       };
 
       // update user
-      const UserStore = plugin.stores.create('users');
-      tlApp.updateUsers([user]);
-      UserStore.set(self.id, user);
-      
+      if (user.id) {
+        tlApp.updateUsers([user]);
+        const UserStore = plugin.stores.create('users');
+        UserStore.set(self.id, user);
+      }
+      else setError('Could not load user.');      
       // zoom to fit content
       tlApp.zoomToFit();
       if (tlApp.zoom > 1) tlApp.resetZoom();
@@ -64,10 +67,14 @@ export function UsePlayer(meetingId: string) {
 
     // populate users
     const UserStore = plugin.stores.create('users');
-    let userData = UserStore.getAll() ?? {};
+    let userData: Record<string, TDUser> = UserStore.getAll() ?? {};
     delete userData[self.id];
     setUsers((u: Record<string, TDUser>) => ({ ...u, ...userData}));
-    Object.values(userData).map((user) => {
+    Object.values(userData).map((user: TDUser) => {
+      if (!user?.id) {
+        setError('Could not load user.');
+        return;
+      }
       app.updateUsers([user]);
     })
   }, [app]);

@@ -86,7 +86,16 @@ interface TLBounds {
     rotation?: number;
 }
 
-const createShapeObj = (asset: TDAsset, viewPort: TLBounds) => {
+const defaultViewport = {
+    minX: 0,
+    maxX: 100,
+    minY: 0,
+    maxY: 100,
+    width: 100,
+    height: 100
+}
+
+const createShapeObj = (asset: TDAsset, viewPort: TLBounds = defaultViewport) => {
     const point = [
         viewPort.width/2 - asset.size[0]/2,
         viewPort.height/2 - asset.size[1]/2,
