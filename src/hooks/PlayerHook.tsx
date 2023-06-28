@@ -119,7 +119,7 @@ export function UsePlayer(meetingId: string) {
     plugin.emit('onMove', { user, camera: app.camera })
   }, 200);
 
-  // image upload
+  // handle images
   const handleImageUpload = async (_: TldrawApp, file: File, id: string) => {
       const {formData } = getFormData(file, id);
       try {

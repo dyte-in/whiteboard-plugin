@@ -1,4 +1,11 @@
 .save-button {
-    @apply bg-white text-xs rounded-md text-blue-500 cursor-pointer shadow-[0_8px_30px_rgb(0,0,0,0.12)] !h-8 !w-8 border-solid border-[1px] border-gray-200;
-    
+    @apply bg-white text-xs rounded-br-md text-black cursor-pointer !h-9 !w-9 border-solid border-[1px] border-gray-200 p-1 shadow-[0_8px_30px_rgb(0,0,0,0.16)] box-border;
+}
+
+.loading {
+    @apply text-gray-400;
+}
+
+.success {
+    @apply text-green-500;
 }
