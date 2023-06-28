@@ -56,13 +56,18 @@ const MainProvider = ({ children }: { children: any }) => {
         UserStore.subscribe('*', (user) => {
             const key = Object.keys(user)[0];
             if (user[key]) {
-                console.log('should not come');
                 app.updateUsers([user[key]]);
                 setUsers((u) => ({ ...u, ...user }));
             } 
+        });
+
+        plugin.addListener('onMove', ({ user, camera }) => {
+            app.updateUsers([user]);
         })
+        
         return () => {
             UserStore.unsubscribe('*');
+            plugin.removeListeners('onMove');
         }
     }, [app, plugin])
     useEffect(() => {

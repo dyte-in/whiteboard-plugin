@@ -1,6 +1,6 @@
 import { MainContext } from '../context';
 import React, { useCallback, useContext, useEffect, useState } from 'react'
-import { fetchUrl, getFormData, randomColor, debounce, createShapeObj } from '../utils/helpers';
+import { fetchUrl, getFormData, randomColor, debounce, createShapeObj, throttle } from '../utils/helpers';
 import { TDAsset, TDAssets, TDBinding, TDShape, TDUser, TDUserStatus, TldrawApp } from '@tldraw/tldraw';
 import axios from 'axios';
 
@@ -114,6 +114,11 @@ export function UsePlayer(meetingId: string) {
     app.selectNone();
   }, [loading]), 250);
 
+  // update other users when I move
+  const onChangePresence = throttle((app :TldrawApp, user: TDUser) => {
+    plugin.emit('onMove', { user, camera: app.camera })
+  }, 200)
+
   // image upload
   const handleImageUpload = async (_: TldrawApp, file: File, id: string) => {
       const {formData } = getFormData(file, id);
@@ -138,6 +143,6 @@ export function UsePlayer(meetingId: string) {
       onChangePage,
       onAssetCreate,
       onAssetUpload,
-      // onAssetDelete,
+      onChangePresence,
   };
 }
