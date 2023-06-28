@@ -132,7 +132,9 @@ export function UsePlayer(meetingId: string) {
       try {
         const url = await fetchUrl(formData, plugin.authToken);
         return url as any;
-      } catch (e) { console.log(e) }
+      } catch (e) { 
+        setError('Error uploading asset.')
+       }
   };
   const handleImageDelete = async (id: string) => {
     try {

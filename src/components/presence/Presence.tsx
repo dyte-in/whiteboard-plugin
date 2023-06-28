@@ -10,6 +10,7 @@ const Presence = () => {
         plugin,
         self,
         users,
+        setError,
         followers,
         following,
         setFollowers,
@@ -54,8 +55,10 @@ const Presence = () => {
 
     // follow user
     const follow = (user: TDUser) => {
-        // TODO: emit error
-        if (followers.has(user.metadata.id)) return;
+        if (followers.has(user?.metadata?.id)) {
+            setError("Can't follow a user who is following you.")
+            return;
+        };
         // emit req to user
         plugin.emit('followRequest', {
             id: self.id
@@ -103,9 +106,9 @@ const Presence = () => {
                             <div
                                 key={index}
                                 className="user-icon"
-                                style={{ background: user.color }}
+                                style={{ background: user?.color ?? 'blue' }}
                             >
-                                {genName(user.metadata.name)}
+                                {genName(user?.metadata?.name ?? 'Participant')}
                             </div>
                             <p>{user.metadata.name}</p>
                         </div>
@@ -116,11 +119,11 @@ const Presence = () => {
                             key={index}
                             className="user-icon"
                             onClick={() => follow(user)}
-                            style={{ background: user?.color }}
+                            style={{ background: user?.color ?? 'blue' }}
                         >
-                            {genName(user.metadata.name)}
+                            {genName(user?.metadata?.name ?? 'Participant')}
                             <div className="tooltip">
-                                {user.metadata.name}
+                                {user?.metadata?.name ?? 'Participant'}
                             </div>
                         </div>
                     )

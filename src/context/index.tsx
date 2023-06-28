@@ -29,7 +29,6 @@ const MainProvider = ({ children }: { children: any }) => {
         if (following.length) return;
         const selected = app.selectedIds;
         if (selected?.length) return;
-        console.log(4);
         app.selectAll();
         app.zoomToSelection();
         app.zoomToFit();
