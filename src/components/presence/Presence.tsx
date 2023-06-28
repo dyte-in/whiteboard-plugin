@@ -3,12 +3,11 @@ import Icon from '../icon/Icon';
 import { TDUser } from '@tldraw/tldraw';
 import { MainContext } from '../../context';
 import { useContext, useEffect, useRef, useState } from 'react';
-import DytePlugin from '@dytesdk/plugin-sdk';
 
 const Presence = () => {
     const hostEl = useRef<HTMLDivElement>(null);
-    const { users } = useContext(MainContext);
     const [showMore, setShowMore] = useState<boolean>(false);
+    const { plugin, self, users, followers, following, setFollowers, setFollowing } = useContext(MainContext);
 
     useEffect(() => {
         window.addEventListener('click', handleClick);
@@ -23,9 +22,6 @@ const Presence = () => {
         }
     };
 
-    const follow = (user: TDUser) => {
-        console.log('follow user: ', user);
-    }
     const genName = (name: string) => {
         const n = name.split(' ');
         let initials = '';
@@ -34,6 +30,38 @@ const Presence = () => {
         })
         return initials ?? 'P';
     }
+
+    // follow user
+    const follow = (user: TDUser) => {
+        // TODO: emit error
+        if (followers.has(user.metadata.id)) return;
+        // emit req to user
+        plugin.emit('followRequest', {
+            id: self.id
+        }, [user.metadata.id])
+    }    
+    useEffect(() => {
+        plugin.on('followRequest', ({id}:{id: string}) => {
+            // emit follow response
+            plugin.emit('followResponse', { followIds: [self.id, ...following] }, [id]);
+            // update followers
+            setFollowers((f: Set<string>) => new Set([...f, id]));
+        });
+        return () => {
+            plugin.removeListeners('followRequest');
+        }
+    }, [following])
+    useEffect(() => {
+        plugin.on('followResponse', ({followIds}:{followIds: string[]}) => {
+            // update following
+            setFollowing((f: string[]) => ([...f, ...followIds]));
+            // emit follow response to followers
+            plugin.emit('followResponse', { followIds }, [...followers]);
+        });
+        return () => {
+            plugin.removeListeners('followResponse');
+        }
+    }, [followers])
 
     return (
     <div>

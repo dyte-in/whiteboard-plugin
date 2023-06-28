@@ -5,62 +5,63 @@ import Icon from '../icon/Icon';
 import { TDUser } from '@tldraw/tldraw';
 
 const Badge = () => {
-    const {
-        users,
-        self,
-        plugin,
-        config,
-        following,
-        followers,
-        setFollowing,
-    } = useContext(MainContext);
+    const { plugin, users, following, self, setFollowing, followers, setFollowers } = useContext(MainContext);
     const [user, setUser] = useState<TDUser>();
 
-    const unfollow = () => {
-        if (followers?.length) {
-            followers.forEach((follower: TDUser) => {
-                plugin.emit('remote-unfollow', { unfollow: following[0] }, [follower]);
-            });
-        }
-        following.forEach((user: string) => {
-            plugin.emit('unfollow', { from: self.id }, [user]);
-        })
-        setFollowing([]);
-        setUser(undefined);
-    }
-    
     useEffect(() => {
-        if (!following || !users) return;
-        const followId =following[0];
-        const u = users[followId];
-        if (user?.id === followId) return;
-        setUser(u?.user);
-    }, [following, users]);
+        const followId = following[0];
+        if (!followId) {
+            setUser(undefined);
+            return;
+        }
+        setUser(users[followId]);
+    }, [following]);
 
+    // unfollow user
+    const unfollow = () => {
+        // emit event to following[0]
+        plugin.emit('unfollow', {
+            id: self.id
+        }, [following[0]]);
+        // emit event to all followers
+        plugin.emit('remote-unfollow', { id: following[0]}, [...followers])
+        // clear following
+        setFollowing([]);
+    }
+    useEffect(() => {
+        plugin.on('unfollow', ({id}: {id: string}) => {
+            setFollowers((f: Set<string>) => {
+                const tempF = f;
+                tempF.delete(id);
+                return new Set([...tempF]);
+            });
+        })
+        return () => {
+            plugin.removeListeners('unfollow')
+        }
+    },[])
+    useEffect(() => {
+        plugin.on('remote-unfollow', ({id}:{id: string}) => {
+            // update following
+            const index = following.indexOf(id);
+            const tempFollowing = following;
+            tempFollowing.splice(index, tempFollowing.length - 1);
+            setFollowing(tempFollowing);
+            // emit remote-unfollow to followers
+            plugin.emit('remote-unfollow', {id}, [...followers]);
+        });
+        return () => {
+            plugin.removeListeners('remote-unfollow');
+        }
+    },[followers, following]);
 
-    if (!user && config?.role === 'viewer') return (
-        <div className="badge"
-        style={{
-            borderColor: 'gray',
-        }}
-        >
-            <div className="label">You have joined as a viewer</div>
-        </div>
-    )
     if (!user) return null;
 
     return (
-        <div className="badge"
-        style={{
-            borderColor: user.color,
-        }}
-        >
-
+        <div className="badge" style={{ borderColor: user.color }}>
             <div className="label">
                 You are following {user?.metadata?.name}
-                {
-                    !config?.follow && <Icon onClick={unfollow} icon='dismiss' className="dismiss" />
-                }
+                <Icon onClick={unfollow} icon='dismiss' className="dismiss" />
             </div>
         </div>
     )

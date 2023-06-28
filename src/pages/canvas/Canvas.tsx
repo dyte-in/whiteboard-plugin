@@ -6,6 +6,7 @@ import React, { useContext } from 'react';
 import CustomCursor from '../../components/cursor/CustomCursor';
 import SaveButton from '../../components/saveButton/SaveButton';
 import Presence from '../../components/presence/Presence';
+import Badge from '../../components/badge/Badge';
 
 const Canvas = () => {
   const { meetingId } = useContext(MainContext);
@@ -26,7 +27,8 @@ const Canvas = () => {
           <SaveButton />
           <Presence />
         </div>
-        {/* <Badge />
+        <Badge />
+        {/* 
         <ErrorModal /> */}
     </div>
   )
