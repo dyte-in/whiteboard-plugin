@@ -5,6 +5,11 @@ import { createShapeObj } from '../utils/helpers';
 
 const MainContext = React.createContext<any>({});
 
+interface Config {
+    follow?: string;
+    role?: 'editor' | 'viewer';
+}
+
 const MainProvider = ({ children }: { children: any }) => {
     const [self, setSelf] = useState<any>();
     const [app, setApp] = useState<TldrawApp>();
@@ -13,6 +18,7 @@ const MainProvider = ({ children }: { children: any }) => {
     const [following, setFollowing] = useState<string[]>([]);
     const [followers, setFollowers] = useState<Set<string>>(new Set());
     const [users, setUsers] = useState<Record<string, TDUser>>({});
+    const [config, setConfig] = useState<Config>({ role: 'viewer' });
 
     const assetArchive: Record<string, TDShape> = {};
 
@@ -37,6 +43,11 @@ const MainProvider = ({ children }: { children: any }) => {
         await dytePlugin.stores.populate('bindings');
 
         setPlugin(dytePlugin);
+
+        dytePlugin.room.on('config', ({ payload: { data } }) => {
+            setConfig({ ...config, ...data });
+        })
+
         dytePlugin.ready();
     }
     useEffect(() => {
@@ -89,7 +100,7 @@ const MainProvider = ({ children }: { children: any }) => {
             setUsers((u) => {
                 const tempUsers = u;
                 delete tempUsers[id];
-                return tempUsers;
+                return {...tempUsers};
             })
             // update following list
             if (following.includes(id)) {
@@ -135,7 +146,6 @@ const MainProvider = ({ children }: { children: any }) => {
             } 
             try {
                 app.delete([key]);
-    
             } catch (e) {
                 console.log('element does not exist.');
             }
@@ -163,6 +173,7 @@ const MainProvider = ({ children }: { children: any }) => {
                 self,
                 users,
                 plugin,
+                config,
                 setApp,
                 setUsers,
                 meetingId,

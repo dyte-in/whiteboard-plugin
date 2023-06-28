@@ -5,9 +5,18 @@ import { MainContext } from '../../context';
 import { useContext, useEffect, useRef, useState } from 'react';
 
 const Presence = () => {
+    const {
+        config,
+        plugin,
+        self,
+        users,
+        followers,
+        following,
+        setFollowers,
+        setFollowing,
+    } = useContext(MainContext);
     const hostEl = useRef<HTMLDivElement>(null);
     const [showMore, setShowMore] = useState<boolean>(false);
-    const { plugin, self, users, followers, following, setFollowers, setFollowing } = useContext(MainContext);
 
     useEffect(() => {
         window.addEventListener('click', handleClick);
@@ -31,6 +40,18 @@ const Presence = () => {
         return initials ?? 'P';
     }
 
+    // follow via config
+    useEffect(() => {
+        if (!config?.follow) return;
+        if (!users || !users[config.follow]) return;
+        if (following[0] === config.follow) return;
+        // emit unfollow
+        plugin.emit('unfollow', {id: self.id}, [following[0]])
+        // clear following
+        setFollowing([]);
+        follow(users[config.follow]);
+    }, [config, users]);
+
     // follow user
     const follow = (user: TDUser) => {
         // TODO: emit error
@@ -39,7 +60,7 @@ const Presence = () => {
         plugin.emit('followRequest', {
             id: self.id
         }, [user.metadata.id])
-    }    
+    };    
     useEffect(() => {
         plugin.on('followRequest', ({id}:{id: string}) => {
             // emit follow response
@@ -50,7 +71,7 @@ const Presence = () => {
         return () => {
             plugin.removeListeners('followRequest');
         }
-    }, [following])
+    }, [following]);
     useEffect(() => {
         plugin.on('followResponse', ({followIds}:{followIds: string[]}) => {
             // update following
@@ -61,7 +82,7 @@ const Presence = () => {
         return () => {
             plugin.removeListeners('followResponse');
         }
-    }, [followers])
+    }, [followers]);
 
     return (
     <div>
