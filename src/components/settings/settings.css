@@ -1,0 +1,18 @@
+.settings-container {
+    @apply flex flex-row items-center justify-center bg-white rounded-br-md text-xs overflow-hidden border-solid border-[1px] border-gray-200 p-1 shadow-[0_8px_30px_rgb(0,0,0,0.16)] box-border;
+}
+.settings-icon {
+    @apply  text-black cursor-pointer !h-7 !w-7 ;
+}
+
+.loading {
+    @apply text-gray-400;
+}
+
+.success {
+    @apply text-green-500;
+}
+
+.active {
+    @apply text-blue-500;
+}

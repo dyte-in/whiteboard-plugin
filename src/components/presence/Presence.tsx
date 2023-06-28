@@ -1,15 +1,20 @@
 import './presence.css';
 import Icon from '../icon/Icon';
 import { TDUser } from '@tldraw/tldraw';
-import { MainContext, User } from '../../context';
+import { MainContext } from '../../context';
 import { useContext, useEffect, useRef, useState } from 'react';
-import DytePlugin from '@dytesdk/plugin-sdk';
 
 const Presence = () => {
-    const { plugin, self, peers, followers, setError } 
-        : { plugin: DytePlugin, self: any, peers: User[], followers: string[], setError: any } 
-        = useContext(MainContext);
-
+    const {
+        config,
+        plugin,
+        self,
+        users,
+        followers,
+        following,
+        setFollowers,
+        setFollowing,
+    } = useContext(MainContext);
     const hostEl = useRef<HTMLDivElement>(null);
     const [showMore, setShowMore] = useState<boolean>(false);
 
@@ -20,6 +25,12 @@ const Presence = () => {
         });
     }, []);
 
+    const handleClick = (e: any) => {
+        if (!e.composedPath().includes(hostEl.current)) {
+            setShowMore(false);
+        }
+    };
+
     const genName = (name: string) => {
         const n = name.split(' ');
         let initials = '';
@@ -29,36 +40,78 @@ const Presence = () => {
         return initials ?? 'P';
     }
 
-    const handleClick = (e: any) => {
-        if (!e.composedPath().includes(hostEl.current)) {
-            setShowMore(false);
-        }
-    };
+    // follow via config
+    useEffect(() => {
+        if (!config?.follow) return;
+        if (!users || !users[config.follow]) return;
+        if (following[0] === config.follow) return;
+        // emit unfollow
+        plugin.emit('unfollow', {id: self.id}, [following[0]])
+        // clear following
+        setFollowing([]);
+        follow(users[config.follow]);
+    }, [config, users]);
 
+    // follow user
     const follow = (user: TDUser) => {
-        if (followers.includes(user.metadata.id)) {
-            setError({ message: 'You can\'t follow a user who is following you.' });
-            return;
+        // TODO: emit error
+        if (followers.has(user.metadata.id)) return;
+        // emit req to user
+        plugin.emit('followRequest', {
+            id: self.id
+        }, [user.metadata.id])
+    };    
+    useEffect(() => {
+        plugin.on('followRequest', ({id}:{id: string}) => {
+            // emit follow response
+            plugin.emit('followResponse', { followIds: [self.id, ...following] }, [id]);
+            // update followers
+            setFollowers((f: Set<string>) => new Set([...f, id]));
+        });
+        return () => {
+            plugin.removeListeners('followRequest');
         }
-        if (followers?.length) {
-            followers.forEach((follower) => {
-                plugin.emit('follow-resp', {
-                    from: [user.metadata.id],
-                }, [follower]);
-            });
-            plugin.emit('remote-follow', { newFollowers: followers  }, [user.metadata.id])
+    }, [following]);
+    useEffect(() => {
+        plugin.on('followResponse', ({followIds}:{followIds: string[]}) => {
+            // update following
+            setFollowing((f: string[]) => ([...f, ...followIds]));
+            // emit follow response to followers
+            plugin.emit('followResponse', { followIds }, [...followers]);
+        });
+        return () => {
+            plugin.removeListeners('followResponse');
         }
-        plugin.emit('follow-init', {
-            from: self.id,
-        }, [user.metadata.id]);
-    }
+    }, [followers]);
 
     return (
-        <div className="user-list">
-            {
-                peers?.map(({ user }: { user: TDUser}, index) => {
-                    if (index > 2) return;
-                    return (
+    <div>
+        {(() => {
+            const listA = [];
+            const listB = [];
+            let index = 0;
+
+            for (const userID in users) {
+                const user = users[userID];
+                if (index > 2) {
+                    listB.push(
+                        <div
+                            key={index}
+                            className="user-tile"
+                            onClick={() => follow(user)}
+                        >
+                            <div
+                                key={index}
+                                className="user-icon"
+                                style={{ background: user.color }}
+                            >
+                                {genName(user.metadata.name)}
+                            </div>
+                            <p>{user.metadata.name}</p>
+                        </div>
+                    )
+                } else {
+                    listA.push(
                         <div
                             key={index}
                             className="user-icon"
@@ -70,47 +123,33 @@ const Presence = () => {
                                 {user.metadata.name}
                             </div>
                         </div>
-                        
                     )
-                })
+                }
+                index += 1;
             }
-            {
-                peers && peers.length > 3 && (
-                    <div className='more-users-container' ref={hostEl}>
-                    {
-                        !showMore 
-                        ? <Icon onClick={() => setShowMore(true)} className="more-users" icon="more" />
-                        : <Icon onClick={() => setShowMore(false)} className="more-users" icon="less" />
-                    }
-                    {
-                        showMore && <div className="user-dropdown">
+
+            if (index > 2) {
+                return (
+                    <div className="user-list">
+                        {listA}
+                        <div className='more-users-container' ref={hostEl}>
                             {
-                                (peers)?.map(({ user }: { user: TDUser}, index) => {
-                                    if (index < 3) return;
-                                    return(
-                                    <div
-                                        key={index}
-                                        className="user-tile"
-                                        onClick={() => follow(user)}
-                                    >
-                                        <div
-                                            key={index}
-                                            className="user-icon"
-                                            style={{ background: user.color }}
-                                        >
-                                            {genName(user.metadata.name)}
-                                        </div>
-                                        <p>{user.metadata.name}</p>
-                                    </div>
-                                    )
-                                })
+                                !showMore 
+                                ? <Icon onClick={() => setShowMore(true)} className="more-users" icon="more" />
+                                : <Icon onClick={() => setShowMore(false)} className="more-users" icon="less" />
+                            }
+                            {
+                                showMore && <div className="user-dropdown">
+                                    {listB}
+                                </div>
                             }
                         </div>
-                    }
                     </div>
                 )
-            }
-        </div>
+            } 
+            return <div className="user-list">{listA}</div>
+        })()}
+    </div>
     )
 }
 

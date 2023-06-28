@@ -2,12 +2,12 @@ import './canvas.css';
 import { Tldraw } from '@tldraw/tldraw';
 import { MainContext } from '../../context';
 import { UsePlayer } from '../../hooks/PlayerHook';
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext } from 'react';
 import CustomCursor from '../../components/cursor/CustomCursor';
-import SaveButton from '../../components/saveButton/SaveButton';
+import Settings from '../../components/settings/Settings';
 import Presence from '../../components/presence/Presence';
+import ErrorModal from '../../components/error/Error';
 import Badge from '../../components/badge/Badge';
-import ErrorModal from '../../components/error/Error'
 
 const Canvas = () => {
   const { meetingId } = useContext(MainContext);
@@ -25,7 +25,7 @@ const Canvas = () => {
             showPages={false}
         />
         <div className="header-elements">
-          <SaveButton />
+          <Settings />
           <Presence />
         </div>
         <Badge />
