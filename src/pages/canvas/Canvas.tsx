@@ -4,7 +4,7 @@ import { MainContext } from '../../context';
 import { UsePlayer } from '../../hooks/PlayerHook';
 import React, { useContext } from 'react';
 import CustomCursor from '../../components/cursor/CustomCursor';
-import SaveButton from '../../components/saveButton/SaveButton';
+import Settings from '../../components/settings/Settings';
 import Presence from '../../components/presence/Presence';
 import ErrorModal from '../../components/error/Error';
 import Badge from '../../components/badge/Badge';
@@ -25,7 +25,7 @@ const Canvas = () => {
             showPages={false}
         />
         <div className="header-elements">
-          <SaveButton />
+          <Settings />
           <Presence />
         </div>
         <Badge />

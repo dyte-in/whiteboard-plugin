@@ -15,6 +15,7 @@ const MainProvider = ({ children }: { children: any }) => {
     const [app, setApp] = useState<TldrawApp>();
     const [error, setError] = useState<string>('');
     const [plugin, setPlugin] = useState<DytePlugin>();
+    const [autoScale, setAutoScale] = useState<boolean>(false);
     const [meetingId, setMeetingId] = useState<string>('');
     const [following, setFollowing] = useState<string[]>([]);
     const [followers, setFollowers] = useState<Set<string>>(new Set());
@@ -22,6 +23,18 @@ const MainProvider = ({ children }: { children: any }) => {
     const [config, setConfig] = useState<Config>({ role: 'editor' });
 
     const assetArchive: Record<string, TDShape> = {};
+
+    const resizeCanvas = () => {
+        if (!autoScale || !app) return;
+        if (following.length) return;
+        const selected = app.selectedIds;
+        if (selected?.length) return;
+        console.log(4);
+        app.selectAll();
+        app.zoomToSelection();
+        app.zoomToFit();
+        app.selectNone();
+    }
 
     // load plugin
     const loadPlugin = async () => {
@@ -145,6 +158,7 @@ const MainProvider = ({ children }: { children: any }) => {
                     try { app.select(...selectedIds) } catch (e) {}
                     delete assetArchive[key];
                 }
+                resizeCanvas();
                 return;
             }
         })
@@ -159,6 +173,7 @@ const MainProvider = ({ children }: { children: any }) => {
                 // NOTE: if this fails the app can crash
                 app.patchCreate([shape[key]])
                 try { app.select(...selectedIds) } catch (e) {}
+                resizeCanvas();
                 return;
             } 
             try { app.delete([key]) } catch (e) {}
@@ -170,6 +185,7 @@ const MainProvider = ({ children }: { children: any }) => {
                 // NOTE: if this fails the app can crash
                 app.patchCreate(undefined, [binding[key]]);
                 try { app.select(...selectedIds) } catch (e) {}
+                resizeCanvas();
                 return;
             }
             try { app.delete([key]) } catch (e) {}
@@ -180,7 +196,7 @@ const MainProvider = ({ children }: { children: any }) => {
             ShapeStore.unsubscribe('*');
             BindingStore.unsubscribe('*');
         }
-    }, [app, plugin, following])
+    }, [app, plugin, following, autoScale])
 
     return (
         <MainContext.Provider
@@ -194,9 +210,11 @@ const MainProvider = ({ children }: { children: any }) => {
                 setApp,
                 setError,
                 setUsers,
+                autoScale,
                 meetingId,
                 following,
                 followers,
+                setAutoScale,
                 setFollowers,
                 setFollowing,
             }}

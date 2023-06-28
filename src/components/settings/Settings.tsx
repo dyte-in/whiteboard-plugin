@@ -1,4 +1,4 @@
-import './saveButton.css';
+import './settings.css';
 import Icon from '../icon/Icon';
 import { MainContext } from '../../context';
 import { useContext, useState } from 'react';
@@ -9,7 +9,7 @@ import { fetchUrl, getFormData } from '../../utils/helpers';
 const SaveButton = () => {
     const [loading, setLoading] = useState<boolean>(false);
     const [uploaded, setUploaded] = useState<boolean>(false);
-    const { app, plugin, meetingId, setError } = useContext(MainContext);
+    const { app, plugin, meetingId, setError, autoScale, setAutoScale } = useContext(MainContext);
 
     const handleExport = async () => {
         if (uploaded || loading) return;
@@ -34,22 +34,32 @@ const SaveButton = () => {
         setLoading(false);
     };
 
-    const getIcon = () => {
+    const getExportIcon = () => {
         if (loading) return 'loading';
         if (uploaded) return 'checkmark';
         return 'save';
     }
-    const getColor = () => {
+    const getExportColor = () => {
         if (loading) return 'loading';
         if (uploaded) return 'success';
         return '';
     }
 
+    const toggleAutoScale = () => {
+        setAutoScale((a: boolean) => !a);
+    }
+
     return (
-    <Icon
-    onClick={handleExport}
-    className={`save-button ${getColor()}`}
-    icon={getIcon()} />
+        <div className='settings-container'>
+            <Icon
+            onClick={toggleAutoScale}
+            className={`settings-icon ${autoScale ? 'active' : ''}`}
+            icon='scale' />
+            <Icon
+            onClick={handleExport}
+            className={`settings-icon ${getExportColor()}`}
+            icon={getExportIcon()} />
+        </div>
     )
 }
 
