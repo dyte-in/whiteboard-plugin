@@ -1,18 +1,21 @@
-import React, { useContext } from 'react'
 import './error.css';
+import Icon from '../icon/Icon';
+import React, { useContext } from 'react'
 import { MainContext } from '../../context'
+
 
 const Error = () => {
     const { error, setError } = useContext(MainContext);
     if (!error) return null;
+
+    const dismiss = () => setError(undefined);
+
     return (
         <div className="error-modal">
             <div className="error-box">
-                <h3>Error</h3>
-                <p>{error.message}</p>
-                <button onClick={() => {
-                    setError(undefined);
-                }}>Dismiss</button>
+                <Icon icon="error" className="error-icon" />
+                <p>{error}</p>
+                <Icon onClick={() => dismiss()} icon="dismiss" className="dismiss-error" />
             </div>
         </div>
     )

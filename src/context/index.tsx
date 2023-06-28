@@ -1,92 +1,54 @@
 import DytePlugin from '@dytesdk/plugin-sdk';
-import { TDUser, TldrawApp } from '@tldraw/tldraw';
+import { TDShape, TDUser, TldrawApp } from '@tldraw/tldraw';
 import React, { useEffect, useState } from 'react'
+import { createShapeObj } from '../utils/helpers';
 
 const MainContext = React.createContext<any>({});
-
-export interface User {
-    user: TDUser;
-    camera: {
-        point: number[];
-        zoom: number;
-    }
-}
-
-interface Data {
-    shapes: {[key: string]: any},
-    assets: {[key: string]: any},
-    bindings: {[key: string]: any},
-}
-
-interface DyteError {
-    message: string;
-    [key: string]: any;
-}
 
 interface Config {
     follow?: string;
     role?: 'editor' | 'viewer';
-    autoScaling?: boolean;
 }
 
 const MainProvider = ({ children }: { children: any }) => {
-    const [plugin, setPlugin] = useState<DytePlugin>();
-    const [app, setApp] = useState<TldrawApp>();
-    const [meetingId, setMeetingId] = useState<string>();
-    const [data, setData] = useState<Data>();
     const [self, setSelf] = useState<any>();
-    const [users, setUsers] = useState<{[key: string]: User}>();
-    const [peers, setPeers] = useState<User[]>();
-    const [followers, setFollowers] = useState<string[]>([]);
+    const [app, setApp] = useState<TldrawApp>();
+    const [error, setError] = useState<string>('');
+    const [plugin, setPlugin] = useState<DytePlugin>();
+    const [autoScale, setAutoScale] = useState<boolean>(false);
+    const [meetingId, setMeetingId] = useState<string>('');
     const [following, setFollowing] = useState<string[]>([]);
-    const [error, setError] = useState<DyteError>();
-    const [config, setConfig] = useState<Config>({
-        autoScaling: true,
-        follow: '',
-        role: 'editor',
-    });
+    const [followers, setFollowers] = useState<Set<string>>(new Set());
+    const [users, setUsers] = useState<Record<string, TDUser>>({});
+    const [config, setConfig] = useState<Config>({ role: 'editor' });
 
-    // update user store
-    const updateUsers = async (user: User) => {
-        if (!plugin) return;
-        const userStore = plugin.stores.get('users');
-        await userStore.set(user.user.metadata.id, user);
-    };
-    const deleteUser = async (id: string) => {
-        if (!plugin) return;
-        const userStore = plugin.stores.get('users');
-        await userStore.delete(id);
-        const tempUsers = users ?? {};
-        delete tempUsers[id];
-        setUsers(tempUsers);
+    const assetArchive: Record<string, TDShape> = {};
+
+    const resizeCanvas = () => {
+        if (!autoScale || !app) return;
+        if (following.length) return;
+        const selected = app.selectedIds;
+        if (selected?.length) return;
+        console.log(4);
+        app.selectAll();
+        app.zoomToSelection();
+        app.zoomToFit();
+        app.selectNone();
     }
-    useEffect(() => {
-        if (!users || !app) return;
-        const tempUsers = users;
-        delete tempUsers[self.id];
-        const tempPeers: User[] = [];
-        Object.values(tempUsers).map((user: any) => {
-            tempPeers.push(user);
-            app?.updateUsers([user.user]);
-        });
-        // update peers
-        if (peers?.length !== tempPeers.length) {
-            setPeers(tempPeers);
-        }
-        // when following
-        if (!following) return;
-        const followID = following[following?.length - 1];
-        if (!followID) return;
-        const camera = users[followID]?.camera;
-        if (!camera) return;
-        app.setCamera(camera.point, camera.zoom, 'follow');
-        
-    }, [users])
 
     // load plugin
     const loadPlugin = async () => {
         // Init plugin
         const dytePlugin = DytePlugin.init({ ready: false });
+        // set plugin
+
+        // get meeting ID
+        const { payload: { roomName }} = await dytePlugin.room.getID();
+        setMeetingId(roomName);
+
+        // get user ID
+        const { payload: { peer }} = await dytePlugin.room.getPeer();
+        setSelf(peer);
 
         // populate stores
         await dytePlugin.stores.populate('users');
@@ -94,43 +56,12 @@ const MainProvider = ({ children }: { children: any }) => {
         await dytePlugin.stores.populate('shapes');
         await dytePlugin.stores.populate('bindings');
 
-        const assetStore = dytePlugin.stores.create('assets');
-        const shapeStore = dytePlugin.stores.create('shapes');
-        const bindingStore = dytePlugin.stores.create('bindings');
-        const shapes = shapeStore.getAll();
-        const bindings = bindingStore.getAll();
-        const assets = assetStore.getAll();
-        setData({ shapes, assets, bindings });
+        setPlugin(dytePlugin);
 
-        // get self
-        const { payload: { peer }} = await dytePlugin.room.getPeer();
-        setSelf(peer);
-
-        // get users 
-        const userStore = dytePlugin.stores.create('users');
-        const users = userStore.getAll();
-        delete users[peer.id]
-        setUsers({...users});
-        setPeers(Object.values({...users}));
-
-
-        // get meeting ID
-        const { payload: { roomName }} = await dytePlugin.room.getID();
-        setMeetingId(roomName);
-
-
-        // subscribe to store changes
-        userStore.subscribe('*', (data) => {
-            setUsers({ ...users,  ...data });
+        dytePlugin.room.on('config', ({ payload: { data } }) => {
+            setConfig({ ...config, ...data });
         })
 
-        // fetch and update config
-        dytePlugin.room.addListener('config', ({ payload: { data } }) => {
-            setConfig({ ...config, ...data });
-        });
-
-        // set plugin
-        setPlugin(dytePlugin);
         dytePlugin.ready();
     }
     useEffect(() => {
@@ -140,218 +71,152 @@ const MainProvider = ({ children }: { children: any }) => {
         }
     }, []);
 
-    // update plugin data
-    const resizeCanvas = () => {
-        // do not scale if config says no
-        if (!config?.autoScaling) return;
-        // do not scale if you are following someone
-        if (following?.length) return;
-        // auto scaling content
-        const selected = app?.selectedIds;
-        // do not scale if someone is drawing
-        if (selected?.length) return;
-        app?.zoomToContent();
-        app?.zoomToFit();
-    }
+    // update users
     useEffect(() => {
         if (!app || !plugin) return;
-        const assetStore = plugin.stores.create('assets');
-        const shapeStore = plugin.stores.create('shapes');
-        const bindingStore = plugin.stores.create('bindings');
-        assetStore.subscribe('*', (asset) => {
-            const key = Object.keys(asset)[0];
-            if (!asset[key]) {
-                try {
-                    app.delete([key]);
-                } catch (e) {};
-                setData((d) => {
-                    let tempD = d;
-                    delete tempD?.assets[key];
-                    if (!tempD) return undefined;
-                    return {...tempD};
-                })
+        const UserStore = plugin.stores.create('users');
+        UserStore.subscribe('*', (user) => {
+            const key = Object.keys(user)[0];
+            if (!user[key]) return;
+            if (!user[key].id) {
+                setError('Could not load user.');
                 return;
             }
-            try {
-                app.replacePageContent(
-                    data?.shapes ?? {},
-                    data?.bindings ?? {},
-                    {...data?.assets, ...asset},
-                );
-            } catch (e) {}
-            setData((d: any) => ({
-                ...d,
-                assets: {
-                    ...d.assets,
-                    ...asset
-                }
-            }));
-            resizeCanvas();
-        })
-        shapeStore.subscribe('*', (shape) => {
-            const key = Object.keys(shape)[0];
-            if (!shape[key]) {
-                try {
-                    app.delete([key]);
-                } catch (e) {};
-                setData((d) => {
-                    let tempD = d;
-                    delete tempD?.assets[key];
-                    if (!tempD) return undefined;
-                    return {...tempD};
-                })
+            app.updateUsers([user[key]]);
+            setUsers((u) => ({ ...u, ...user }));
+           
+        });
+        return () => {
+            UserStore.unsubscribe('*');
+        }
+    }, [app, plugin]);
+    useEffect(() => {
+        if (!app || !plugin) return;
+        plugin.addListener('onMove', ({ user, camera }) => {
+            // move user
+            if (!user || !user.id) {
+                setError('Could not load user.');
                 return;
             }
-            try {
-                app.replacePageContent(
-                    {...data?.shapes, ...shape },
-                    data?.bindings ?? {},
-                    data?.assets ?? {}
-                );
-            } catch (e) {}
-            setData((d: any) => ({
-                ...d,
-                shapes: {
-                    ...d.shapes,
-                    ...shape
-                }
-            }));
-            resizeCanvas();
-        })
-        bindingStore.subscribe('*', (binding) => {
-            const key = Object.keys(binding)[0];
-            if (!binding[key]) {
-                try {
-                    app.delete([key]);
-                } catch (e) {};
-                setData((d) => {
-                    let tempD = d;
-                    delete tempD?.assets[key];
-                    if (!tempD) return undefined;
-                    return {...tempD};
-                })
-                return;
-            }
-            try {
-                app.replacePageContent(
-                    data?.shapes ?? {},
-                    { ...data?.bindings, ...binding },
-                    data?.assets ?? {}
-                );
-            } catch (e) {}
-            setData((d: any) => ({
-                ...d,
-                bindings: {
-                    ...d.bindings,
-                    ...binding
-                }
-            }));
-            resizeCanvas();
-        })
-        return () => {
-            assetStore.unsubscribe('*');
-            shapeStore.unsubscribe('*');
-            bindingStore.unsubscribe('*');
-        }
-    }, [app, plugin, config, following, data])
-
-    // follow user via config
-    useEffect(() => {
-        if (!plugin || !self) return;
-        plugin.addListener('add-config-follower', ({ from }) => {
-            setFollowers([...followers, from]);
-            plugin.emit('add-config-following', {
-                newFollowing: [self.id, ...following],
-            }, [from])
-        })
-        return () => {
-            plugin.removeListeners('add-config-follower');
-        }
-    }, [plugin, self, followers, following]);
-    useEffect(() => {
-        if (!config.follow || !self || !plugin) return;
-        if (config.follow && self.id !== config.follow) {
-            setFollowing([config.follow]);
-        }
-        plugin.emit('add-config-follower', {
-            from: self.id,
-        }, [config.follow])
-        plugin.addListener('add-config-following', ({ newFollowing }) => {
-            setFollowing(newFollowing);
-        });
-
-        return () => {
-            plugin.removeListeners('add-config-following',)
-        }
-    }, [plugin, self, config]);
-
-    // follow users and manage followers
-    useEffect(() => {
-        if (!plugin || !self || !app || !config) return;
-        plugin.on('follow-init', ({ from }) => {
-            // update followers
-            setFollowers([ ...followers, from ]);
-            plugin.emit('follow-resp', {
-                from: [self.id, ...following],
-            }, [from]);
-        });
-        plugin.on('follow-resp', ({ from }) => {
-            setFollowing([...following, ...from ]);
-        });
-        plugin.on('unfollow', ({ from }) => {
-            setFollowers(followers.filter(x => x !== from));
-        });
-        plugin.on('remote-follow', ({ newFollowers }) => {
-            setFollowers([...followers, ...newFollowers])
-        });
-        plugin.on('remote-unfollow', ({ unfollow }) => {
-            const index = following.indexOf(unfollow);
-            const tempFollowing = following;
-            tempFollowing.splice(index, tempFollowing.length - 1);
-            setFollowing([...tempFollowing]);
-            following.forEach((user: string) => {
-                plugin.emit('unfollow', { from: self.id }, [user]);
-            });   
-        });
-        return () => {
-            plugin.removeListeners('follow-init');
-            plugin.removeListeners('follow-resp');
-            plugin.removeListeners('remote-follow');
-            plugin.removeListeners('remote-unfollow');
-            plugin.removeListeners('follow-error');
-        };
-    }, [plugin, self, app, following, followers]);
-    useEffect(() => {
-        if (!following || !app || !users) return;
-        const followID = following[following?.length - 1];
-        if (followID) {
-            const camera = users[followID]?.camera;
+            app.updateUsers([user]);
+            // pan the camera if following user
+            const followID = following[following?.length - 1];
+            if (!followID || followID !== user.metadata.id) return;
             if (!camera) return;
             app.setCamera(camera.point, camera.zoom, 'follow');
+        })
+        return () => {
+            plugin.removeListeners('onMove');
         }
-    }, [following, app]);
+    }, [app, plugin, following]);
+    useEffect(() => {
+        if (!app || !plugin) return;
+        plugin.room.on('peerLeft', ({payload: { id }}) => {
+            const UserStore = plugin.stores.get('users');
+            const user = users[id];
+            if (!user || !user.id) return;
+            // remove from app
+            app.removeUser(user.id);
+            // remove from store
+            UserStore.delete(id);
+            // update users state
+            setUsers((u) => {
+                const tempUsers = u;
+                delete tempUsers[id];
+                return {...tempUsers};
+            })
+            // update following list
+            if (following.includes(id)) {
+                const index = following.indexOf(id);
+                const tempFollowing = following;
+                tempFollowing.splice(index, tempFollowing.length - 1);
+                setFollowing(tempFollowing);
+            }
+        })
+    }, [app, plugin, users, following]);
+
+    // update data
+    useEffect(() => {
+        if (!plugin || !app) return;
+
+        const AssetStore = plugin.stores.create('assets');
+        const ShapeStore = plugin.stores.create('shapes');
+        const BindingStore = plugin.stores.create('bindings');
+
+        AssetStore.subscribe('*', (asset) => {
+            const key = Object.keys(asset)[0];
+            const selectedIds = app.selectedIds ?? [];
+            if (asset[key]) {
+                app.patchAssets(asset);
+                let shape: TDShape;
+                if (assetArchive[key]) {
+                    shape = assetArchive[key];
+                }  else shape = createShapeObj(asset[key], app.viewport);
+                if (shape) {
+                    // NOTE: if this fails the app can crash
+                    app.patchCreate([shape]);
+                    try { app.select(...selectedIds) } catch (e) {}
+                    delete assetArchive[key];
+                }
+                resizeCanvas();
+                return;
+            }
+        })
+        ShapeStore.subscribe('*', (shape) => {
+            const key = Object.keys(shape)[0];
+            const selectedIds = app.selectedIds ?? [];
+            if (shape[key]) {
+                if (shape[key].assetId && !app.document.assets[key]) {
+                    assetArchive[key] = shape[key];
+                    return;
+                }
+                // NOTE: if this fails the app can crash
+                app.patchCreate([shape[key]])
+                try { app.select(...selectedIds) } catch (e) {}
+                resizeCanvas();
+                return;
+            } 
+            try { app.delete([key]) } catch (e) {}
+        })
+        BindingStore.subscribe('*', (binding) => {
+            const key = Object.keys(binding)[0];
+            const selectedIds = app.selectedIds ?? [];
+            if (binding[key]) {
+                // NOTE: if this fails the app can crash
+                app.patchCreate(undefined, [binding[key]]);
+                try { app.select(...selectedIds) } catch (e) {}
+                resizeCanvas();
+                return;
+            }
+            try { app.delete([key]) } catch (e) {}
+        })
+
+        return () => {
+            AssetStore.unsubscribe('*');
+            ShapeStore.unsubscribe('*');
+            BindingStore.unsubscribe('*');
+        }
+    }, [app, plugin, following, autoScale])
 
     return (
         <MainContext.Provider
             value={{
                 app,
-                data,
                 self,
-                error,
-                peers,
                 users,
-                config,
+                error,
                 plugin,
+                config,
+                setApp,
+                setError,
+                setUsers,
+                autoScale,
                 meetingId,
                 following,
                 followers,
-                setApp,
-                setData,
-                setError,
-                deleteUser,
-                updateUsers,  
-                setFollowing,
+                setAutoScale,
                 setFollowers,
+                setFollowing,
             }}
         >
             {children}
@@ -360,3 +225,4 @@ const MainProvider = ({ children }: { children: any }) => {
 }
 
 export { MainContext, MainProvider } 
+

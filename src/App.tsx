@@ -5,12 +5,12 @@ import logo from '../src/assets/icon.png';
 import Canvas from './pages/canvas/Canvas';
 
 const App = () => {
-  const { plugin, meetingId, data, self } = useContext(MainContext);
+  const { plugin, meetingId, self } = useContext(MainContext);
 
   return (
     <div className='container'>
       {
-        plugin && meetingId && data && self
+        plugin && meetingId && self
           ?  (
            <Canvas />
           )
