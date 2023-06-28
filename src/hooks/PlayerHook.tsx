@@ -1,13 +1,13 @@
 import { MainContext } from '../context';
 import React, { useCallback, useContext, useEffect, useState } from 'react'
 import { fetchUrl, getFormData, randomColor, debounce, createShapeObj } from '../utils/helpers';
-import { TDAsset, TDAssets, TDBinding, TDShape, TDUserStatus, TldrawApp } from '@tldraw/tldraw';
+import { TDAsset, TDAssets, TDBinding, TDShape, TDUser, TDUserStatus, TldrawApp } from '@tldraw/tldraw';
 import axios from 'axios';
 
 
 export function UsePlayer(meetingId: string) {
   const [loading, setLoading] = useState<boolean>(true);
-  const { app, plugin, setApp } = useContext(MainContext);
+  const { app, plugin, setApp, self, users, setUsers } = useContext(MainContext);
   
   // load app
   const onMount = (tlApp: TldrawApp) => {
@@ -23,9 +23,13 @@ export function UsePlayer(meetingId: string) {
           status: TDUserStatus.Connected,
           activeShapes: [],
           selectedIds: [],
-          metadata: { name: '', id: '' },
+          metadata: { name: self.name, id: self.id },
       };
-      // TODO: update user
+
+      // update user
+      const UserStore = plugin.stores.create('users');
+      tlApp.updateUsers([user]);
+      UserStore.set(self.id, user);
       
       // zoom to fit content
       tlApp.zoomToFit();
@@ -37,11 +41,11 @@ export function UsePlayer(meetingId: string) {
       tlApp.setStatus('ready');
   };
 
-  // update canvas on load
+  // populate inital data
   useEffect(() => {
     if (!app) return;
 
-    // populate data
+    // populate canvas
     const AssetStore = plugin.stores.create('assets');
     const ShapeStore = plugin.stores.create('shapes');
     const BindingStore = plugin.stores.create('bindings');
@@ -57,6 +61,15 @@ export function UsePlayer(meetingId: string) {
       shapes[asset.id] = shape;
     });
     app.replacePageContent(shapes, bindings, assets);
+
+    // populate users
+    const UserStore = plugin.stores.create('users');
+    let userData = UserStore.getAll() ?? {};
+    delete userData[self.id];
+    setUsers((u: Record<string, TDUser>) => ({ ...u, ...userData}));
+    Object.values(userData).map((user) => {
+      app.updateUsers([user]);
+    })
   }, [app])
 
   // update store users when something is drawn

@@ -9,7 +9,8 @@ const MainProvider = ({ children }: { children: any }) => {
     const [plugin, setPlugin] = useState<DytePlugin>();
     const [app, setApp] = useState<TldrawApp>();
     const [meetingId, setMeetingId] = useState<string>('');
-    const [selfId, setSelfId] = useState<string>('');
+    const [self, setSelf] = useState<any>();
+    const [users, setUsers] = useState<Record<string, TDUser>>({});
 
     const assetArchive: Record<string, TDShape> = {};
 
@@ -25,9 +26,10 @@ const MainProvider = ({ children }: { children: any }) => {
 
         // get user ID
         const { payload: { peer }} = await dytePlugin.room.getPeer();
-        setSelfId(peer?.id);
+        setSelf(peer);
 
         // populate stores
+        await dytePlugin.stores.populate('users');
         await dytePlugin.stores.populate('assets');
         await dytePlugin.stores.populate('shapes');
         await dytePlugin.stores.populate('bindings');
@@ -41,6 +43,46 @@ const MainProvider = ({ children }: { children: any }) => {
             if (!plugin) return;
         }
     }, []);
+
+    useEffect(() => {
+        console.log(users);
+    }, [users])
+
+
+    // update users
+    useEffect(() => {
+        if (!app || !plugin) return;
+        const UserStore = plugin.stores.create('users');
+        UserStore.subscribe('*', (user) => {
+            const key = Object.keys(user)[0];
+            if (user[key]) {
+                console.log('should not come');
+                app.updateUsers([user[key]]);
+                setUsers((u) => ({ ...u, ...user }));
+            } 
+        })
+        return () => {
+            UserStore.unsubscribe('*');
+        }
+    }, [app, plugin])
+    useEffect(() => {
+        if (!app || !plugin) return;
+        plugin.room.on('peerLeft', ({payload: { id }}) => {
+            const UserStore = plugin.stores.get('users');
+            const user = users[id];
+            if (!user) return;
+            // remove from app
+            app.removeUser(user.id);
+            // remove from store
+            UserStore.delete(id);
+            // update users state
+            setUsers((u) => {
+                const tempUsers = u;
+                delete tempUsers[id];
+                return tempUsers;
+            })
+        })
+    }, [app, plugin, users])
 
 
     // update canvas when a remote user draws
@@ -126,7 +168,9 @@ const MainProvider = ({ children }: { children: any }) => {
                 setApp,
                 plugin,
                 meetingId,
-                selfId,
+                self,
+                users,
+                setUsers,
             }}
         >
             {children}
