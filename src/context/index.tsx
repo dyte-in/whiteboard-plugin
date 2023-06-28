@@ -64,7 +64,8 @@ const MainProvider = ({ children }: { children: any }) => {
         const UserStore = plugin.stores.create('users');
         UserStore.subscribe('*', (user) => {
             const key = Object.keys(user)[0];
-            if (!user[key] || !user[key].id) {
+            if (!user[key]) return;
+            if (!user[key].id) {
                 setError('Could not load user.');
                 return;
             }
