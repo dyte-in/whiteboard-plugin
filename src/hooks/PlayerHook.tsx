@@ -43,25 +43,7 @@ export function UsePlayer(meetingId: string) {
       setLoading(false);
       tlApp.setStatus('ready');
   };
-
-  useEffect(() => {
-    if (!app) return;
-    // try limiting size
-    const height = document.body.clientHeight;
-    app.updateBounds({
-      ...app.viewport,
-      maxY: 100,
-      height: 100,
-    })
-
-    
-
-    document.onscroll = (e) => {
-      console.log('e:', e);
-    }
-  }, [app])
   
-
   // populate inital data
   useEffect(() => {
     if (!app) return;
