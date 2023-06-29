@@ -8,6 +8,7 @@ const MainContext = React.createContext<any>({});
 interface Config {
     follow?: string;
     role?: 'editor' | 'viewer';
+    autoScale?: boolean;
 }
 
 const MainProvider = ({ children }: { children: any }) => {
@@ -20,7 +21,7 @@ const MainProvider = ({ children }: { children: any }) => {
     const [following, setFollowing] = useState<string[]>([]);
     const [followers, setFollowers] = useState<Set<string>>(new Set());
     const [users, setUsers] = useState<Record<string, TDUser>>({});
-    const [config, setConfig] = useState<Config>({ role: 'editor' });
+    const [config, setConfig] = useState<Config>({ role: 'editor', autoScale: false  });
 
     const assetArchive: Record<string, TDShape> = {};
 
@@ -57,8 +58,9 @@ const MainProvider = ({ children }: { children: any }) => {
 
         setPlugin(dytePlugin);
 
-        dytePlugin.room.on('config', ({ payload: { data } }) => {
-            setConfig({ ...config, ...data });
+        dytePlugin.room.on('config', ({payload}) => {
+            setConfig({ ...config, ...payload });
+            setAutoScale(payload?.autoScale ?? false);
         })
 
         dytePlugin.ready();

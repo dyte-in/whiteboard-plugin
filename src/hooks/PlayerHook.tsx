@@ -1,7 +1,7 @@
 import { MainContext } from '../context';
 import React, { useCallback, useContext, useEffect, useState } from 'react'
 import { fetchUrl, getFormData, randomColor, debounce, createShapeObj, throttle } from '../utils/helpers';
-import { TDAsset, TDAssets, TDBinding, TDShape, TDUser, TDUserStatus, TldrawApp } from '@tldraw/tldraw';
+import { TDAsset, TDAssets, TDBinding, TDShape, TDShapeType, TDUser, TDUserStatus, TldrawApp } from '@tldraw/tldraw';
 import axios from 'axios';
 
 
@@ -43,6 +43,24 @@ export function UsePlayer(meetingId: string) {
       setLoading(false);
       tlApp.setStatus('ready');
   };
+
+  useEffect(() => {
+    if (!app) return;
+    // try limiting size
+    const height = document.body.clientHeight;
+    app.updateBounds({
+      ...app.viewport,
+      maxY: 100,
+      height: 100,
+    })
+
+    
+
+    document.onscroll = (e) => {
+      console.log('e:', e);
+    }
+  }, [app])
+  
 
   // populate inital data
   useEffect(() => {
@@ -87,6 +105,8 @@ export function UsePlayer(meetingId: string) {
       assets: Record<string, TDAsset | undefined>,
   ) => {
     if (loading) return;
+
+    // make false if text or shape is undefined
     const AssetStore = plugin.stores.create('assets');
     const ShapeStore = plugin.stores.create('shapes');
     const BindingStore = plugin.stores.create('bindings');
@@ -117,8 +137,11 @@ export function UsePlayer(meetingId: string) {
       const isBinding = BindingStore.get(binding[0]);
       if (isBinding) BindingStore.delete(binding[0]);
     })
-    app.selectTool('select');
-    app.selectNone();
+
+    if (app.currentTool?.type !== TDShapeType.Text) {
+      app.selectTool('select');
+      app.selectNone();
+    }
   }, [loading]), 250);
 
   // update other users when I move
