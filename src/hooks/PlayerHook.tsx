@@ -137,11 +137,13 @@ export function UsePlayer(meetingId: string) {
       const isBinding = BindingStore.get(binding[0]);
       if (isBinding) BindingStore.delete(binding[0]);
     })
-
-    if (app.currentTool?.type !== TDShapeType.Text) {
-      app.selectTool('select');
-      app.selectNone();
-    }
+  
+    if (
+      app.currentTool?.type === TDShapeType.Text 
+      || app.currentTool?.type === 'select'
+    ) return;
+    app.selectTool('select');
+    app.selectNone();
   }, [loading]), 250);
 
   // update other users when I move
