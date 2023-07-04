@@ -1,7 +1,7 @@
 import './settings.css';
 import Icon from '../icon/Icon';
 import { MainContext } from '../../context';
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { TDExportBackground, TDExportType, TldrawApp } from '@tldraw/tldraw';
 import { fetchUrl, getFormData } from '../../utils/helpers';
 
@@ -44,6 +44,16 @@ const SaveButton = () => {
         if (uploaded) return 'success';
         return '';
     }
+
+    useEffect(() => {
+        if (!plugin) return;
+        plugin.room.on('save-board', async () => {
+            await handleExport();
+            plugin.room.emitEvent('board-saved', {
+                url: `${import.meta.env.VITE_API_BASE}/whiteboard/${meetingId}`,
+            });
+        })
+    }, [plugin])
 
     const toggleAutoScale = () => {
         setAutoScale((a: boolean) => !a);
