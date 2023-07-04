@@ -1,7 +1,7 @@
 import { MainContext } from '../context';
 import React, { useCallback, useContext, useEffect, useState } from 'react'
 import { fetchUrl, getFormData, randomColor, debounce, createShapeObj, throttle } from '../utils/helpers';
-import { TDAsset, TDAssets, TDBinding, TDShape, TDUser, TDUserStatus, TldrawApp } from '@tldraw/tldraw';
+import { TDAsset, TDAssets, TDBinding, TDShape, TDShapeType, TDUser, TDUserStatus, TldrawApp } from '@tldraw/tldraw';
 import axios from 'axios';
 
 
@@ -43,7 +43,7 @@ export function UsePlayer(meetingId: string) {
       setLoading(false);
       tlApp.setStatus('ready');
   };
-
+  
   // populate inital data
   useEffect(() => {
     if (!app) return;
@@ -87,6 +87,8 @@ export function UsePlayer(meetingId: string) {
       assets: Record<string, TDAsset | undefined>,
   ) => {
     if (loading) return;
+
+    // make false if text or shape is undefined
     const AssetStore = plugin.stores.create('assets');
     const ShapeStore = plugin.stores.create('shapes');
     const BindingStore = plugin.stores.create('bindings');
@@ -117,6 +119,11 @@ export function UsePlayer(meetingId: string) {
       const isBinding = BindingStore.get(binding[0]);
       if (isBinding) BindingStore.delete(binding[0]);
     })
+  
+    if (
+      app.currentTool?.type === TDShapeType.Text 
+      || app.currentTool?.type === 'select'
+    ) return;
     app.selectTool('select');
     app.selectNone();
   }, [loading]), 250);
