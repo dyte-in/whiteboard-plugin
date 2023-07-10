@@ -8,9 +8,9 @@ import Settings from '../../components/settings/Settings';
 import Presence from '../../components/presence/Presence';
 import ErrorModal from '../../components/error/Error';
 import Badge from '../../components/badge/Badge';
-
+import logo from '../../assets/logo.png';
 const Canvas = () => {
-  const { meetingId } = useContext(MainContext);
+  const { app, meetingId } = useContext(MainContext);
   const { ...events } = UsePlayer(meetingId);
   const component = { Cursor: CustomCursor };
 
@@ -30,6 +30,9 @@ const Canvas = () => {
         </div>
         <Badge />
         <ErrorModal />
+        {
+          (!app || events?.loading) && <div className="loading-page"><img src={logo} /> <p>Whiteboard</p></div>
+        }
     </div>
   )
 }
