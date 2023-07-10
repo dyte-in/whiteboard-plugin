@@ -7,6 +7,7 @@ import axios from 'axios';
 
 export function UsePlayer(meetingId: string) {
   const [loading, setLoading] = useState<boolean>(true);
+  const [activeTool, setActiveTool] = useState<string>('select');
   const { app, plugin, setApp, self, setUsers, setError } = useContext(MainContext);
   
   // load app
@@ -33,16 +34,30 @@ export function UsePlayer(meetingId: string) {
         const UserStore = plugin.stores.create('users');
         UserStore.set(self.id, user);
       }
-      else setError('Could not load user.');      
+      else setError('Could not load user.');  
+    
       // zoom to fit content
       tlApp.zoomToFit();
       if (tlApp.zoom > 1) tlApp.resetZoom();
+
+      // lock tools
+      lockTools(tlApp);
 
       // load app
       setApp(tlApp);
       setLoading(false);
       tlApp.setStatus('ready');
   };
+
+  const lockTools = (tlApp: TldrawApp) => {
+    const toolbar = document.getElementById("TD-PrimaryTools");
+    const handleClick = (e: any) => {
+      setTimeout(() => {
+        setActiveTool(tlApp.currentTool.type);
+      }, 200)
+    }
+    toolbar?.addEventListener('click', handleClick);
+  }
   
   // populate inital data
   useEffect(() => {
@@ -119,14 +134,15 @@ export function UsePlayer(meetingId: string) {
       const isBinding = BindingStore.get(binding[0]);
       if (isBinding) BindingStore.delete(binding[0]);
     })
-  
+
     if (
-      app.currentTool?.type === TDShapeType.Text 
-      || app.currentTool?.type === 'select'
+      activeTool === 'text'
     ) return;
-    app.selectTool('select');
-    app.selectNone();
-  }, [loading]), 250);
+    app.selectTool(activeTool as any);
+  
+    
+  
+  }, [loading, activeTool]), 250);
 
   // update other users when I move
   const onChangePresence = throttle((app :TldrawApp, user: TDUser) => {

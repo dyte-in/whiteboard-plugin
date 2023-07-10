@@ -22,7 +22,7 @@ const SaveButton = () => {
                 setError("Can't capture an empty board.")
                 return;
             }
-            const {formData } = getFormData(image, `meeting-${meetingId}`);
+            const {formData } = getFormData(image, `whiteboard-${meetingId}`);
             await fetchUrl(formData, plugin.authToken);
             setUploaded(true);
             setTimeout(() => {

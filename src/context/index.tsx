@@ -48,19 +48,42 @@ const MainProvider = ({ children }: { children: any }) => {
 
         // get user ID
         const { payload: { peer }} = await dytePlugin.room.getPeer();
+        const {payload: { enabledBy }} = await dytePlugin.enabledBy();
+    
         setSelf(peer);
 
         // populate stores
+        await dytePlugin.stores.populate('config');
         await dytePlugin.stores.populate('users');
         await dytePlugin.stores.populate('assets');
         await dytePlugin.stores.populate('shapes');
         await dytePlugin.stores.populate('bindings');
 
+
         setPlugin(dytePlugin);
 
-        dytePlugin.room.on('config', ({payload}) => {
+        const remoteConfig = dytePlugin.stores.create('config');
+        const followID = remoteConfig.get('follow');
+
+        if (peer.isRecorder) {
+            if (followID) setFollowing([followID])
+            else setFollowing([enabledBy]);
+        }
+
+        dytePlugin.room.on('config', async ({payload}) => {
             setConfig({ ...config, ...payload });
-            setAutoScale(payload?.autoScale ?? false);
+            const followID = remoteConfig.get('follow');
+            if (peer.id === enabledBy && !followID) {
+                remoteConfig.set('follow', payload.follow);
+            } else if (followID && followID !== payload) {
+                remoteConfig.set('follow', payload.follow);
+            }
+        })
+
+        remoteConfig.subscribe('follow', ({ follow }) => {
+            if (peer.isRecorder) {
+                setFollowing([follow]);
+            }
         })
 
         dytePlugin.ready();
