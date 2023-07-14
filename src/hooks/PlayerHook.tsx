@@ -64,9 +64,9 @@ export function UsePlayer(meetingId: string) {
     if (!app) return;
 
     // populate canvas
-    const AssetStore = plugin.stores.create('assets');
-    const ShapeStore = plugin.stores.create('shapes');
-    const BindingStore = plugin.stores.create('bindings');
+    const AssetStore = plugin.stores.create('assets', { volatile: false });
+    const ShapeStore = plugin.stores.create('shapes', { volatile: false });
+    const BindingStore = plugin.stores.create('bindings', { volatile: false });
 
     const assets: TDAssets = AssetStore.getAll() ?? {};
     let shapes = ShapeStore.getAll() ?? {};
@@ -104,9 +104,9 @@ export function UsePlayer(meetingId: string) {
     if (loading) return;
 
     // make false if text or shape is undefined
-    const AssetStore = plugin.stores.create('assets');
-    const ShapeStore = plugin.stores.create('shapes');
-    const BindingStore = plugin.stores.create('bindings');
+    const AssetStore = plugin.stores.create('assets', { volatile: false });
+    const ShapeStore = plugin.stores.create('shapes', { volatile: false });
+    const BindingStore = plugin.stores.create('bindings', { volatile: false });
   
     Object.entries(assets).map((asset) => {
       if (asset[1]) {
