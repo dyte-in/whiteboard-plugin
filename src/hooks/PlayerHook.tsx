@@ -31,8 +31,10 @@ export function UsePlayer(meetingId: string) {
       // update user
       if (user.id) {
         tlApp.updateUsers([user]);
-        const UserStore = plugin.stores.create('users');
-        UserStore.set(self.id, user);
+        if (!self.isRecorder && !self.isHidden) { 
+          const UserStore = plugin.stores.create('users');
+          UserStore.set(self.id, user);
+        }      
       }
       else setError('Could not load user.');  
     
