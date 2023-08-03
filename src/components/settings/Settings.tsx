@@ -4,7 +4,6 @@ import { MainContext } from '../../context';
 import { useContext, useEffect, useState } from 'react';
 import { TDExportBackground, TDExportType, TldrawApp } from '@tldraw/tldraw';
 import { fetchUrl, getFormData } from '../../utils/helpers';
-import DytePlugin from '@dytesdk/plugin-sdk';
 
 
 const SaveButton = () => {
@@ -25,10 +24,10 @@ const SaveButton = () => {
             }
             const {formData } = getFormData(image, `whiteboard-${meetingId}`);
             await fetchUrl(formData, plugin.authToken);
-            setUploaded(true);
             plugin.room.emitEvent('board-saved', {
-                url: `https://files.plugins.dyte.in/whiteboard/${meetingId}`
-            })
+                url: `${import.meta.env.VITE_API_BASE}/whiteboard/${meetingId}`,
+            });
+            setUploaded(true);
             setTimeout(() => {
                 setUploaded(false);
             }, 2000)
@@ -53,9 +52,6 @@ const SaveButton = () => {
         if (!plugin) return;
         plugin.room.on('save-board', async () => {
             await handleExport();
-            plugin.room.emitEvent('board-saved', {
-                url: `${import.meta.env.VITE_API_BASE}/whiteboard/${meetingId}`,
-            });
         })
     }, [plugin])
 
