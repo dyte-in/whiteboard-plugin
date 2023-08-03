@@ -31,8 +31,10 @@ export function UsePlayer(meetingId: string) {
       // update user
       if (user.id) {
         tlApp.updateUsers([user]);
-        const UserStore = plugin.stores.create('users');
-        UserStore.set(self.id, user);
+        if (!self.isRecorder && !self.isHidden) { 
+          const UserStore = plugin.stores.create('users');
+          UserStore.set(self.id, user);
+        }      
       }
       else setError('Could not load user.');  
     
@@ -64,9 +66,9 @@ export function UsePlayer(meetingId: string) {
     if (!app) return;
 
     // populate canvas
-    const AssetStore = plugin.stores.create('assets');
-    const ShapeStore = plugin.stores.create('shapes');
-    const BindingStore = plugin.stores.create('bindings');
+    const AssetStore = plugin.stores.create('assets', { volatile: false });
+    const ShapeStore = plugin.stores.create('shapes', { volatile: false });
+    const BindingStore = plugin.stores.create('bindings', { volatile: false });
 
     const assets: TDAssets = AssetStore.getAll() ?? {};
     let shapes = ShapeStore.getAll() ?? {};
@@ -104,9 +106,9 @@ export function UsePlayer(meetingId: string) {
     if (loading) return;
 
     // make false if text or shape is undefined
-    const AssetStore = plugin.stores.create('assets');
-    const ShapeStore = plugin.stores.create('shapes');
-    const BindingStore = plugin.stores.create('bindings');
+    const AssetStore = plugin.stores.create('assets', { volatile: false });
+    const ShapeStore = plugin.stores.create('shapes', { volatile: false });
+    const BindingStore = plugin.stores.create('bindings', { volatile: false });
   
     Object.entries(assets).map((asset) => {
       if (asset[1]) {

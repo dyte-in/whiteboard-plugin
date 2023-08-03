@@ -4,6 +4,7 @@ import { MainContext } from '../../context';
 import { useContext, useEffect, useState } from 'react';
 import { TDExportBackground, TDExportType, TldrawApp } from '@tldraw/tldraw';
 import { fetchUrl, getFormData } from '../../utils/helpers';
+import DytePlugin from '@dytesdk/plugin-sdk';
 
 
 const SaveButton = () => {
@@ -25,6 +26,9 @@ const SaveButton = () => {
             const {formData } = getFormData(image, `whiteboard-${meetingId}`);
             await fetchUrl(formData, plugin.authToken);
             setUploaded(true);
+            plugin.room.emitEvent('board-saved', {
+                url: `https://files.plugins.dyte.in/whiteboard/${meetingId}`
+            })
             setTimeout(() => {
                 setUploaded(false);
             }, 2000)

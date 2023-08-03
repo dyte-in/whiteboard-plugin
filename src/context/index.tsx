@@ -55,9 +55,9 @@ const MainProvider = ({ children }: { children: any }) => {
         // populate stores
         await dytePlugin.stores.populate('config');
         await dytePlugin.stores.populate('users');
-        await dytePlugin.stores.populate('assets');
-        await dytePlugin.stores.populate('shapes');
-        await dytePlugin.stores.populate('bindings');
+        await dytePlugin.stores.populate('assets', { volatile: false });
+        await dytePlugin.stores.populate('shapes', { volatile: false });
+        await dytePlugin.stores.populate('bindings', { volatile: false });
 
 
         setPlugin(dytePlugin);
@@ -163,9 +163,9 @@ const MainProvider = ({ children }: { children: any }) => {
     useEffect(() => {
         if (!plugin || !app) return;
 
-        const AssetStore = plugin.stores.create('assets');
-        const ShapeStore = plugin.stores.create('shapes');
-        const BindingStore = plugin.stores.create('bindings');
+        const AssetStore = plugin.stores.create('assets', { volatile: false });
+        const ShapeStore = plugin.stores.create('shapes', { volatile: false });
+        const BindingStore = plugin.stores.create('bindings', { volatile: false });
 
         AssetStore.subscribe('*', (asset) => {
             const key = Object.keys(asset)[0];
