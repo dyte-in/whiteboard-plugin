@@ -24,7 +24,7 @@ const SaveButton = () => {
             }
             const {formData } = getFormData(image, `whiteboard-${meetingId}`);
             await fetchUrl(formData, plugin.authToken);
-            plugin.room.emitEvent('board-saved', {
+            plugin?.room?.emitEvent('board-saved', {
                 url: `${import.meta.env.VITE_API_BASE}/whiteboard/${meetingId}`,
             });
             setUploaded(true);
@@ -49,11 +49,14 @@ const SaveButton = () => {
     }
 
     useEffect(() => {
-        if (!plugin) return;
+        if (!plugin || !app) return;
         plugin.room.on('save-board', async () => {
             await handleExport();
         })
-    }, [plugin])
+        return () => {
+            plugin.room.removeListeners('save-board');
+        }
+    }, [plugin, app])
 
     const toggleAutoScale = () => {
         setAutoScale((a: boolean) => !a);
