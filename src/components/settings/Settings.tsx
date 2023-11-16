@@ -11,7 +11,7 @@ const SaveButton = () => {
     const [uploaded, setUploaded] = useState<boolean>(false);
     const { app, plugin, meetingId, setError, autoScale, setAutoScale } = useContext(MainContext);
 
-    const handleExport = async () => {
+    const handleExport = async (ignoreErrors = false) => {
         if (uploaded || loading) return;
         setLoading(true);
         try {
@@ -32,7 +32,12 @@ const SaveButton = () => {
                 setUploaded(false);
             }, 2000)
         } catch (e) {
-            setError('Error while saving board.')
+            if (ignoreErrors) {
+                plugin?.room?.emitEvent('board-saved', { url: undefined });
+            } else {
+                setError('Error while saving board.')
+            }
+            
         }
         setLoading(false);
     };
@@ -51,7 +56,7 @@ const SaveButton = () => {
     useEffect(() => {
         if (!plugin || !app) return;
         plugin.room.on('save-board', async () => {
-            await handleExport();
+            await handleExport(true);
         })
         return () => {
             plugin.room.removeListeners('save-board');
