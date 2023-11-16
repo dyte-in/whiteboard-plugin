@@ -11,12 +11,23 @@ const SaveButton = () => {
     const [uploaded, setUploaded] = useState<boolean>(false);
     const { app, plugin, meetingId, setError, autoScale, setAutoScale } = useContext(MainContext);
 
+    const handleExportError = () => {
+        plugin?.room?.emitEvent(
+            'board-saved',
+            { url: undefined, message: 'Cannot save an empty board.', status: 400 },
+        );
+    }
     const handleExport = async (ignoreErrors = false) => {
         if (uploaded || loading) return;
         setLoading(true);
         try {
             app.setSetting('exportBackground', TDExportBackground.Light);
             const image =  await app.getImage(TDExportType.JPG);
+            if (!image && ignoreErrors) {
+                handleExportError();
+                setLoading(false);
+                return;
+            }
             if (!image) {
                 setLoading(false);
                 setError("Can't capture an empty board.")
@@ -26,15 +37,16 @@ const SaveButton = () => {
             await fetchUrl(formData, plugin.authToken);
             plugin?.room?.emitEvent('board-saved', {
                 url: `${import.meta.env.VITE_API_BASE}/whiteboard/${meetingId}`,
+                message: 'Board saved successfully.',
+                status: 200,
             });
             setUploaded(true);
             setTimeout(() => {
                 setUploaded(false);
             }, 2000)
         } catch (e) {
-            if (ignoreErrors) {
-                plugin?.room?.emitEvent('board-saved', { url: undefined });
-            } else {
+            if (ignoreErrors) handleExportError()
+            else {
                 setError('Error while saving board.')
             }
             
@@ -74,7 +86,7 @@ const SaveButton = () => {
             className={`settings-icon ${autoScale ? 'active' : ''}`}
             icon='scale' />
             <Icon
-            onClick={handleExport}
+            onClick={() => handleExport()}
             className={`settings-icon ${getExportColor()}`}
             icon={getExportIcon()} />
         </div>
