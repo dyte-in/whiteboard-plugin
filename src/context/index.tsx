@@ -65,8 +65,6 @@ const MainProvider = ({ children }: { children: any }) => {
         const remoteConfig = dytePlugin.stores.create('config');
         const followID = remoteConfig.get('follow');
 
-        console.log('here:', peer);
-
         const isRecorder = peer.isRecorder || peer.isHidden;
     
         if (isRecorder) {
