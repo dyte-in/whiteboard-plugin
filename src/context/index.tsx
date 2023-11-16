@@ -65,9 +65,14 @@ const MainProvider = ({ children }: { children: any }) => {
         const remoteConfig = dytePlugin.stores.create('config');
         const followID = remoteConfig.get('follow');
 
-        if (peer.isRecorder) {
+        const isRecorder = peer.isRecorder || peer.isHidden;
+    
+        if (isRecorder) {
             if (followID) setFollowing([followID])
-            else setFollowing([enabledBy]);
+            else {
+                setFollowing([enabledBy]);
+                setConfig({ follow: enabledBy, role: 'viewer', autoScale: false  })
+            }
         }
 
         dytePlugin.room.on('config', async ({payload}) => {
@@ -81,7 +86,7 @@ const MainProvider = ({ children }: { children: any }) => {
         })
 
         remoteConfig.subscribe('follow', ({ follow }) => {
-            if (peer.isRecorder) {
+            if (isRecorder) {
                 setFollowing([follow]);
             }
         })
