@@ -28,6 +28,9 @@ const MainProvider = ({ children }: { children: any }) => {
         if (config.role === 'viewer' && !app.settings.isFocusMode) {
             app.toggleFocusMode();
         }
+        if (config.role === 'editor' && app.settings.isFocusMode) {
+            app.toggleFocusMode();
+        }
     }, [app,config])
 
     const assetArchive: Record<string, TDShape> = {};
