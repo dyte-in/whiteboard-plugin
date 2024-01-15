@@ -23,6 +23,13 @@ const MainProvider = ({ children }: { children: any }) => {
     const [users, setUsers] = useState<Record<string, TDUser>>({});
     const [config, setConfig] = useState<Config>({ role: 'editor', autoScale: false  });
 
+    useEffect(() => {
+        if (!app || !config) return;
+        if (config.role === 'viewer' && !app.settings.isFocusMode) {
+            app.toggleFocusMode();
+        }
+    }, [app,config])
+
     const assetArchive: Record<string, TDShape> = {};
 
     const resizeCanvas = () => {
