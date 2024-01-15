@@ -131,7 +131,7 @@ const MainProvider = ({ children }: { children: any }) => {
     }, [app, plugin]);
     useEffect(() => {
         if (!app || !plugin) return;
-        plugin.addListener('onMove', ({ user, camera }) => {
+        plugin.addListener('onMove', ({ user, camera, size }) => {
             // move user
             if (!user || !user.id) {
                 setError('Could not load user.');
@@ -141,8 +141,14 @@ const MainProvider = ({ children }: { children: any }) => {
             // pan the camera if following user
             const followID = following[following?.length - 1];
             if (!followID || followID !== user.metadata.id) return;
-            if (!camera) return;
-            app.setCamera(camera.point, camera.zoom, 'follow');
+            if (camera) app.setCamera(camera.point, camera.zoom, 'follow');
+            // update zoom when user moves
+            if (size && (window.innerHeight < size.y || window.innerWidth < size.x)) {
+                const wRatio = size.x / window.innerWidth;
+                const hRatio = size.y / window.innerHeight;
+                const viewerZoom = size.zoom / Math.max(wRatio, hRatio);
+                app.zoomTo(viewerZoom - 0.1);
+            }
         })
         return () => {
             plugin.removeListeners('onMove');
