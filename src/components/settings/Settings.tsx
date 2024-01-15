@@ -21,6 +21,11 @@ const SaveButton = () => {
         if (uploaded || loading) return;
         setLoading(true);
         try {
+            const isEmpty = app.getAppState().isEmptyCanvas;
+            if (isEmpty) {
+                setLoading(false);
+                return;
+            };
             app.setSetting('exportBackground', TDExportBackground.Light);
             const image =  await app.getImage(TDExportType.JPG);
             if (!image && ignoreErrors) {
