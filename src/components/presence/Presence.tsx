@@ -6,6 +6,7 @@ import { useContext, useEffect, useRef, useState } from 'react';
 
 const Presence = () => {
     const {
+        app,
         config,
         plugin,
         self,
@@ -63,6 +64,7 @@ const Presence = () => {
         plugin.emit('followRequest', {
             id: self.id
         }, [user.metadata.id])
+        if (!app.settings.isFocusMode) app.toggleFocusMode();
     };    
     useEffect(() => {
         plugin.on('followRequest', ({id}:{id: string}) => {
