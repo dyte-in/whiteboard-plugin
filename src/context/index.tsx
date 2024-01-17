@@ -141,13 +141,14 @@ const MainProvider = ({ children }: { children: any }) => {
             // pan the camera if following user
             const followID = following[following?.length - 1];
             if (!followID || followID !== user.metadata.id) return;
-            if (camera) app.setCamera(camera.point, camera.zoom, 'follow');
             // update zoom when user moves
             if (size && (window.innerHeight < size.y || window.innerWidth < size.x)) {
                 const wRatio = size.x / window.innerWidth;
                 const hRatio = size.y / window.innerHeight;
                 const viewerZoom = size.zoom / Math.max(wRatio, hRatio);
-                app.zoomTo(viewerZoom - 0.1);
+                if (camera) app.setCamera([camera.point[0] * wRatio, camera.point[1] * hRatio], viewerZoom - 0.1, 'follow');
+            } else {
+                if (camera) app.setCamera(camera.point, camera.zoom, 'follow');
             }
         })
         return () => {
