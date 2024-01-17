@@ -149,7 +149,11 @@ export function UsePlayer(meetingId: string) {
   // update other users when I move
   const onChangePresence = throttle((app :TldrawApp, user: TDUser) => {
     if (self?.isRecorder || self?.isHidden) return;
-    plugin.emit('onMove', { user, camera: app.camera })
+    plugin.emit('onMove', { 
+      user, 
+      camera: app.camera, 
+      size: { x: window.innerWidth, y: window.innerHeight, zoom: app.zoom },
+    })
   }, 200);
 
   // handle images

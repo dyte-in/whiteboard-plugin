@@ -23,6 +23,16 @@ const MainProvider = ({ children }: { children: any }) => {
     const [users, setUsers] = useState<Record<string, TDUser>>({});
     const [config, setConfig] = useState<Config>({ role: 'editor', autoScale: false  });
 
+    useEffect(() => {
+        if (!app || !config) return;
+        if (config.role === 'viewer' && !app.settings.isFocusMode) {
+            app.toggleFocusMode();
+        }
+        if (config.role === 'editor' && app.settings.isFocusMode) {
+            app.toggleFocusMode();
+        }
+    }, [app,config])
+
     const assetArchive: Record<string, TDShape> = {};
 
     const resizeCanvas = () => {
@@ -121,7 +131,7 @@ const MainProvider = ({ children }: { children: any }) => {
     }, [app, plugin]);
     useEffect(() => {
         if (!app || !plugin) return;
-        plugin.addListener('onMove', ({ user, camera }) => {
+        plugin.addListener('onMove', ({ user, camera, size }) => {
             // move user
             if (!user || !user.id) {
                 setError('Could not load user.');
@@ -131,8 +141,16 @@ const MainProvider = ({ children }: { children: any }) => {
             // pan the camera if following user
             const followID = following[following?.length - 1];
             if (!followID || followID !== user.metadata.id) return;
-            if (!camera) return;
-            app.setCamera(camera.point, camera.zoom, 'follow');
+            // update zoom when user moves
+            if (size && (window.innerHeight < size.y || window.innerWidth < size.x)) {
+                const wRatio = size.x / window.innerWidth;
+                const hRatio = size.y / window.innerHeight;
+                const maxRatio = Math.max(wRatio, hRatio);
+                const viewerZoom = size.zoom / maxRatio
+                if (camera) app.setCamera([camera.point[0] / maxRatio, camera.point[1] /maxRatio], viewerZoom, 'follow');
+            } else {
+                if (camera) app.setCamera(camera.point, camera.zoom, 'follow');
+            }
         })
         return () => {
             plugin.removeListeners('onMove');
