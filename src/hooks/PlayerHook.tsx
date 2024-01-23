@@ -110,9 +110,10 @@ export function UsePlayer(meetingId: string) {
     const ShapeStore = plugin.stores.create('shapes', { volatile: false });
     const BindingStore = plugin.stores.create('bindings', { volatile: false });
   
-    Object.entries(assets).map((asset) => {
+    Object.entries(assets).map((asset: any) => {
       if (asset[1]) {
-        AssetStore.set(asset[0], asset[1]);
+        const assetShape = shapes[asset[0]];
+        AssetStore.set(asset[0], {...asset[1], point: assetShape?.point});
       }
     })
     Object.entries(shapes).map(async (shape) => {
