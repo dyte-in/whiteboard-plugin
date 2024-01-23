@@ -37,7 +37,7 @@ const Badge = () => {
         plugin.emit('remote-unfollow', { id: following[0]}, [...followers])
         // clear following
         setFollowing([]);
-        if (app.settings.isFocusMode) app.toggleFocusMode();
+        if (config?.role !== 'viewer' && app.settings.isFocusMode) app.toggleFocusMode();
     }
     useEffect(() => {
         plugin.on('unfollow', ({id}: {id: string}) => {
