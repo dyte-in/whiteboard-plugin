@@ -147,7 +147,7 @@ const MainProvider = ({ children }: { children: any }) => {
                 const hRatio = size.y / window.innerHeight;
                 const maxRatio = Math.max(wRatio, hRatio);
                 const viewerZoom = size.zoom / maxRatio
-                if (camera) app.setCamera([camera.point[0] / maxRatio, camera.point[1] /maxRatio], viewerZoom, 'follow');
+                if (camera) app.setCamera(camera.point, viewerZoom, 'follow');
             } else {
                 if (camera) app.setCamera(camera.point, camera.zoom, 'follow');
             }

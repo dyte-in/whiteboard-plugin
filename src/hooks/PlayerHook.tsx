@@ -113,7 +113,9 @@ export function UsePlayer(meetingId: string) {
     Object.entries(assets).map((asset: any) => {
       if (asset[1]) {
         const assetShape = shapes[asset[0]];
-        AssetStore.set(asset[0], {...asset[1], point: assetShape?.point});
+        /** NOTE(ishita1805): The only time this occurs is when a shape that is drawn on an image is erased, in such a case the image is not actually moved and we do not need to propagate this event. */
+        if (!assetShape) return
+        AssetStore.set(asset[0], {...asset[1], point: assetShape.point});
       }
     })
     Object.entries(shapes).map(async (shape) => {
@@ -143,8 +145,8 @@ export function UsePlayer(meetingId: string) {
     ) return;
     app.selectTool(activeTool as any);
   
-    
-  
+
+
   }, [loading, activeTool]), 250);
 
   // update other users when I move
