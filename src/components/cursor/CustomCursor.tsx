@@ -7,12 +7,6 @@ const CustomCursor: CursorComponent<{ name: 'Anonymous' }> = (props: Pick<TLUser
   const { color, metadata } = props;
   const { app } = useContext(MainContext);
   
-  useEffect(() => {
-    if (!app) return;
-    console.log(app.zoom)
-  }, [])
-
-  
   return (
     <div className="cursor-container">
       <div
