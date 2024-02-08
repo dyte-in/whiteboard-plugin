@@ -9,6 +9,7 @@ interface Config {
     follow?: string;
     role?: 'editor' | 'viewer';
     autoScale?: boolean;
+    zenMode?: boolean;
 }
 
 const MainProvider = ({ children }: { children: any }) => {
@@ -21,7 +22,7 @@ const MainProvider = ({ children }: { children: any }) => {
     const [following, setFollowing] = useState<string[]>([]);
     const [followers, setFollowers] = useState<Set<string>>(new Set());
     const [users, setUsers] = useState<Record<string, TDUser>>({});
-    const [config, setConfig] = useState<Config>({ role: 'editor', autoScale: false  });
+    const [config, setConfig] = useState<Config>({ role: 'editor', autoScale: false, zenMode: false });
 
     useEffect(() => {
         if (!app || !config) return;
@@ -81,7 +82,7 @@ const MainProvider = ({ children }: { children: any }) => {
             if (followID) setFollowing([followID])
             else {
                 setFollowing([enabledBy]);
-                setConfig({ follow: enabledBy, role: 'viewer', autoScale: false  })
+                setConfig({ follow: enabledBy, role: 'viewer', autoScale: false, zenMode: true,  })
             }
         }
 
