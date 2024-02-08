@@ -70,16 +70,22 @@ const Badge = () => {
     if (!user && config?.role === 'viewer') 
     return (
         <div className="badge" style={{ borderColor: 'gray' }}>
-            <div className="label">You have joined as a viewer</div>
+            {
+                !config.zenMode && <div className="label">You have joined as a viewer</div>
+            }
+            
         </div>
     )
     if (!user) return null;
     return (
         <div className="badge" style={{ borderColor: user.color }}>
-            <div className="label">
+             {
+                !config.zenMode && <div className="label">
                 You are following {user?.metadata?.name}
                 <Icon onClick={unfollow} icon='dismiss' className="dismiss" />
             </div>
+            }
+            
         </div>
     )
 }
