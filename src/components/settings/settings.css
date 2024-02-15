@@ -1,10 +1,16 @@
 .settings-container {
     @apply flex flex-row items-center justify-center bg-white rounded-br-md text-xs overflow-hidden border-solid border-[1px] border-gray-200 p-1 shadow-[0_8px_30px_rgb(0,0,0,0.16)] box-border;
 }
+
+.settings-container-dark {
+    @apply flex flex-row items-center justify-center bg-[#353D43] rounded-br-md text-xs overflow-hidden border-solid border-[1px] border-gray-600 p-1 shadow-[0_8px_30px_rgb(0,0,0,0.16)] box-border;
+} 
 .settings-icon {
     @apply  text-black cursor-pointer !h-7 !w-7 ;
 }
-
+.settings-icon-dark {
+    @apply  text-white cursor-pointer !h-7 !w-7 ;
+}
 .loading {
     @apply text-gray-400;
 }

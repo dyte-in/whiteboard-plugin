@@ -102,12 +102,12 @@ const Presence = () => {
                     listB.push(
                         <div
                             key={index}
-                            className="user-tile"
+                            className={config.darkMode ? "user-tile-dark" : "user-tile"}
                             onClick={() => follow(user)}
                         >
                             <div
                                 key={index}
-                                className="user-icon"
+                                className={config.darkMode ? "user-icon-dark":"user-icon"}
                                 style={{ background: user?.color ?? 'blue' }}
                             >
                                 {genName(user?.metadata?.name ?? 'Participant')}
@@ -119,12 +119,12 @@ const Presence = () => {
                     listA.push(
                         <div
                             key={index}
-                            className="user-icon"
+                            className={config.darkMode ?"user-icon-dark" : "user-icon"}
                             onClick={() => follow(user)}
                             style={{ background: user?.color ?? 'blue' }}
                         >
                             {genName(user?.metadata?.name ?? 'Participant')}
-                            <div className="tooltip">
+                            <div className={config.darkMode ?"tooltip-dark": "tooltip"}>
                                 {user?.metadata?.name ?? 'Participant'}
                             </div>
                         </div>
@@ -140,11 +140,11 @@ const Presence = () => {
                         <div className='more-users-container' ref={hostEl}>
                             {
                                 !showMore 
-                                ? <Icon onClick={() => setShowMore(true)} className="more-users" icon="more" />
-                                : <Icon onClick={() => setShowMore(false)} className="more-users" icon="less" />
+                                ? <Icon onClick={() => setShowMore(true)} className={config.darkMode ?"more-users-dark": "more-users"} icon="more" />
+                                : <Icon onClick={() => setShowMore(false)} className={config.darkMode ?"more-users-dark": "more-users"} icon="less" />
                             }
                             {
-                                showMore && <div className="user-dropdown">
+                                showMore && <div className={config.darkMode ?"user-dropdown-dark": "user-dropdown"}>
                                     {listB}
                                 </div>
                             }

@@ -5,7 +5,7 @@ import { MainContext } from '../../context';
 
 const CustomCursor: CursorComponent<{ name: 'Anonymous' }> = (props: Pick<TLUser<any>, 'id' | 'color' | 'metadata'>) => {
   const { color, metadata } = props;
-  const { app } = useContext(MainContext);
+  const { app, config } = useContext(MainContext);
   
   return (
     <div className="cursor-container">
@@ -18,7 +18,7 @@ const CustomCursor: CursorComponent<{ name: 'Anonymous' }> = (props: Pick<TLUser
         }}
       />
       <div
-        className="cursor-label"
+        className={config.darkMode ? "cursor-label-dark":"cursor-label"}
         style={{
           maxWidth: `${150  /  Math.min(app.zoom, 1) }px`,
           height: `${24  /  Math.min(app.zoom, 1) }px`,
