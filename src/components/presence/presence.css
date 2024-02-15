@@ -4,14 +4,27 @@
 .user-icon {
     @apply !h-6 !w-6 rounded-full shadow-lg text-xs text-white flex items-center justify-center border-solid border-2 border-white box-content cursor-pointer select-none relative;
 }
+.user-icon-dark {
+    @apply !h-6 !w-6 rounded-full shadow-lg text-xs text-black flex items-center justify-center border-solid border-2 border-gray-600 box-content cursor-pointer select-none relative mr-1;
+}
 .tooltip {
     @apply absolute flex bg-gray-200 min-w-fit w-14 py-0.5 px-1 rounded-sm items-center justify-center line-clamp-1 text-gray-700 text-xs top-8 left-0 hidden;
+}
+
+.tooltip-dark {
+    @apply absolute flex bg-gray-600 min-w-fit w-14 py-0.5 px-1 rounded-sm items-center justify-center line-clamp-1 text-white text-xs top-8 left-0 hidden;
 }
 .user-icon:hover .tooltip {
     @apply flex;
 }
+.user-icon-dark:hover .tooltip-dark {
+    @apply flex;
+}
 .more-users {
     @apply h-6 w-6 text-black cursor-pointer;
+}
+.more-users-dark {
+    @apply h-6 w-6 text-white cursor-pointer;
 }
 
 .more-users-container {
@@ -21,9 +34,15 @@
 .user-dropdown {
     @apply max-h-60 overflow-y-auto bg-white absolute top-6 rounded-md   shadow-[0_8px_30px_rgb(0,0,0,0.12)] border-solid border-[1px] border-gray-200 w-40 overflow-x-hidden flex flex-col justify-center;
 }
+.user-dropdown-dark {
+    @apply max-h-60 overflow-y-auto bg-[#353D43] absolute top-6 rounded-md   shadow-[0_8px_30px_rgb(0,0,0,0.12)] border-solid border-[1px] border-gray-600 w-40 overflow-x-hidden flex flex-col justify-center;
+}
 .user-tile {
     @apply text-xs p-1 cursor-pointer border-solid border-0 border-b-[1px] border-gray-200 flex flex-row items-center justify-start w-full;
-    
+}
+
+.user-tile-dark {
+    @apply text-xs p-1 cursor-pointer border-solid border-0 border-b-[1px] border-gray-600 flex flex-row items-center justify-start w-full text-white;
 }
 
 .user-tile .user-icon {

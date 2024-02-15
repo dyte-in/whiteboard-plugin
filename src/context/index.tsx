@@ -10,6 +10,7 @@ interface Config {
     role?: 'editor' | 'viewer';
     autoScale?: boolean;
     zenMode?: boolean;
+    darkMode?: boolean;
 }
 
 const MainProvider = ({ children }: { children: any }) => {
@@ -22,7 +23,7 @@ const MainProvider = ({ children }: { children: any }) => {
     const [following, setFollowing] = useState<string[]>([]);
     const [followers, setFollowers] = useState<Set<string>>(new Set());
     const [users, setUsers] = useState<Record<string, TDUser>>({});
-    const [config, setConfig] = useState<Config>({ role: 'editor', autoScale: false, zenMode: false });
+    const [config, setConfig] = useState<Config>({ role: 'editor', autoScale: false, zenMode: false, darkMode: false });
 
     useEffect(() => {
         if (!app || !config) return;

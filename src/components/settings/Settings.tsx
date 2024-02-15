@@ -9,7 +9,7 @@ import { fetchUrl, getFormData } from '../../utils/helpers';
 const SaveButton = () => {
     const [loading, setLoading] = useState<boolean>(false);
     const [uploaded, setUploaded] = useState<boolean>(false);
-    const { app, plugin, meetingId, setError, autoScale, setAutoScale } = useContext(MainContext);
+    const { app, plugin, meetingId, setError, autoScale, setAutoScale, config } = useContext(MainContext);
 
     const handleExportError = () => {
         plugin?.room?.emitEvent(
@@ -84,15 +84,17 @@ const SaveButton = () => {
         setAutoScale((a: boolean) => !a);
     }
 
+    console.log(config);
+
     return (
-        <div className='settings-container'>
+        <div className={config.darkMode ? 'settings-container-dark' : 'settings-container'}>
             <Icon
             onClick={toggleAutoScale}
-            className={`settings-icon ${autoScale ? 'active' : ''}`}
+            className={`${config.darkMode ? 'settings-icon-dark' : 'settings-icon'} ${autoScale ? 'active' : ''}`}
             icon='scale' />
             <Icon
             onClick={() => handleExport()}
-            className={`settings-icon ${getExportColor()}`}
+            className={`${config.darkMode ? 'settings-icon-dark' : 'settings-icon'} ${getExportColor()}`}
             icon={getExportIcon()} />
         </div>
     )

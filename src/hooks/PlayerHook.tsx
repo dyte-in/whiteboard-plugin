@@ -8,7 +8,7 @@ import axios from 'axios';
 export function UsePlayer(meetingId: string) {
   const [loading, setLoading] = useState<boolean>(true);
   const [activeTool, setActiveTool] = useState<string>('select');
-  const { app, plugin, setApp, self, setUsers, setError } = useContext(MainContext);
+  const { app, plugin, config, setApp, self, setUsers, setError } = useContext(MainContext);
   
   // load app
   const onMount = (tlApp: TldrawApp) => {
@@ -95,6 +95,17 @@ export function UsePlayer(meetingId: string) {
       app.updateUsers([user]);
     })
   }, [app]);
+
+  // set dark mode
+  useEffect(() => {
+    if (!app) return;
+    if (config.darkMode) {
+      
+      if (!(app as TldrawApp).settings.isDarkMode) app.toggleDarkMode();
+    } else {
+      if ((app as TldrawApp).settings.isDarkMode) app.toggleDarkMode();
+    }
+  }, [app, config])
 
   // update store users when something is drawn
   const onChangePage = debounce(useCallback((
