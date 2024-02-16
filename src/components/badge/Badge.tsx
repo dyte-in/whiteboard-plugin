@@ -80,7 +80,7 @@ const Badge = () => {
     return (
         <div className="badge" style={{ borderColor: user.color }}>
              {
-                !config.zenMode && <div className="label">
+                !config.zenMode && <div className={config.darkMode ? "label-dark": "label"}>
                 You are following {user?.metadata?.name}
                 <Icon onClick={unfollow} icon='dismiss' className="dismiss" />
             </div>
