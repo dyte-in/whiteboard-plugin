@@ -1,7 +1,8 @@
 import DytePlugin from '@dytesdk/plugin-sdk';
-import { TDShape, TDUser, TldrawApp } from '@tldraw/tldraw';
+import { TDShape, TDUser, TldrawApp  } from '@tldraw/tldraw';
 import React, { useEffect, useState } from 'react'
 import { createShapeObj } from '../utils/helpers';
+import { storeConf } from '../utils/constants';
 
 const MainContext = React.createContext<any>({});
 
@@ -13,11 +14,20 @@ interface Config {
     darkMode?: boolean;
 }
 
+interface Page {
+    id: string;
+    name: string;
+}
+
 const MainProvider = ({ children }: { children: any }) => {
     const [self, setSelf] = useState<any>();
     const [app, setApp] = useState<TldrawApp>();
     const [error, setError] = useState<string>('');
     const [plugin, setPlugin] = useState<DytePlugin>();
+    const [page, setPage] = useState<Page>({
+        id: 'page',
+        name: 'Page 1'
+    });
     const [autoScale, setAutoScale] = useState<boolean>(false);
     const [meetingId, setMeetingId] = useState<string>('');
     const [following, setFollowing] = useState<string[]>([]);
@@ -67,9 +77,7 @@ const MainProvider = ({ children }: { children: any }) => {
         // populate stores
         await dytePlugin.stores.populate('config');
         await dytePlugin.stores.populate('users');
-        await dytePlugin.stores.populate('assets', { volatile: false });
-        await dytePlugin.stores.populate('shapes', { volatile: false });
-        await dytePlugin.stores.populate('bindings', { volatile: false });
+        await dytePlugin.stores.populate('page', storeConf);
 
 
         setPlugin(dytePlugin);
@@ -184,13 +192,32 @@ const MainProvider = ({ children }: { children: any }) => {
         })
     }, [app, plugin, users, following]);
 
+    // update page
+    useEffect(() => {
+        if (!plugin || !app) return;
+        const PageStore = plugin.stores.create('page', storeConf);
+        PageStore.subscribe('*', ({ currentPage }: {currentPage: Page}) => {
+            if (!currentPage) return;
+            const p = app.getPage(currentPage.id);
+            if (!p) {
+                app.createPage(currentPage.id, currentPage.name);
+            } else {
+                app.changePage(currentPage.id);
+            }
+            setPage(currentPage);
+        })
+        return () => {
+            PageStore.unsubscribe('*');
+        }
+    }, [app, plugin])
+
     // update data
     useEffect(() => {
         if (!plugin || !app) return;
 
-        const AssetStore = plugin.stores.create('assets', { volatile: false });
-        const ShapeStore = plugin.stores.create('shapes', { volatile: false });
-        const BindingStore = plugin.stores.create('bindings', { volatile: false });
+        const AssetStore = plugin.stores.create(`${page.id}-assets`, storeConf);
+        const ShapeStore = plugin.stores.create(`${page.id}-shapes`, storeConf);
+        const BindingStore = plugin.stores.create(`${page.id}-bindings`, storeConf);
 
         AssetStore.subscribe('*', (asset) => {
             const key = Object.keys(asset)[0];
@@ -245,7 +272,24 @@ const MainProvider = ({ children }: { children: any }) => {
             ShapeStore.unsubscribe('*');
             BindingStore.unsubscribe('*');
         }
-    }, [app, plugin, following, autoScale])
+    }, [app, plugin, page])
+
+    useEffect(() => {
+        if (!app || !plugin) return;
+        
+        (app as any).onStateDidChange = () => {
+            const p = app.getPage();
+            const PageStore = plugin.stores.get('page');
+            if (p.id === page.id) return;
+            const pageObj = {
+                id: p.id,
+                name: p.name ?? 'Page',
+            }
+            PageStore.set('currentPage', pageObj);
+            PageStore.set(pageObj.id, pageObj.name);
+            setPage(pageObj);
+        }
+    }, [app, plugin, page])
 
     return (
         <MainContext.Provider
@@ -256,6 +300,8 @@ const MainProvider = ({ children }: { children: any }) => {
                 error,
                 plugin,
                 config,
+                page,
+                setPage,
                 setApp,
                 setError,
                 setUsers,

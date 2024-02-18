@@ -1,14 +1,17 @@
 import { MainContext } from '../context';
-import React, { useCallback, useContext, useEffect, useState } from 'react'
+import { useCallback, useContext, useEffect, useState } from 'react'
 import { fetchUrl, getFormData, randomColor, debounce, createShapeObj, throttle } from '../utils/helpers';
-import { TDAsset, TDAssets, TDBinding, TDShape, TDShapeType, TDUser, TDUserStatus, TldrawApp } from '@tldraw/tldraw';
+import { TDAsset, TDAssets, TDBinding, TDShape, TDUser, TDUserStatus, TldrawApp } from '@tldraw/tldraw';
+import { Utils } from '@tldraw/core'
 import axios from 'axios';
+import { storeConf } from '../utils/constants';
 
 
 export function UsePlayer(meetingId: string) {
   const [loading, setLoading] = useState<boolean>(true);
   const [activeTool, setActiveTool] = useState<string>('select');
-  const { app, plugin, config, setApp, self, setUsers, setError } = useContext(MainContext);
+  const [ready, setReady] = useState<boolean>(false);
+  const { app, page, setPage, plugin, config, setApp, self, setUsers, setError } = useContext(MainContext);
   
   // load app
   const onMount = (tlApp: TldrawApp) => {
@@ -45,10 +48,13 @@ export function UsePlayer(meetingId: string) {
       // lock tools
       lockTools(tlApp);
 
+      (window as any).tlApp = tlApp;
+
       // load app
       setApp(tlApp);
       setLoading(false);
       tlApp.setStatus('ready');
+      setReady(true);
   };
 
   const lockTools = (tlApp: TldrawApp) => {
@@ -60,27 +66,84 @@ export function UsePlayer(meetingId: string) {
     }
     toolbar?.addEventListener('click', handleClick);
   }
-  
-  // populate inital data
-  useEffect(() => {
-    if (!app) return;
 
-    // populate canvas
-    const AssetStore = plugin.stores.create('assets', { volatile: false });
-    const ShapeStore = plugin.stores.create('shapes', { volatile: false });
-    const BindingStore = plugin.stores.create('bindings', { volatile: false });
-
-    const assets: TDAssets = AssetStore.getAll() ?? {};
+  const updateCanvas = async (id: string, pageData: string, index: number ) => {
+    if (id === 'currentPage') return;
+    // populate stores
+    await plugin.stores.populate(`${id}-assets`, storeConf);
+    await plugin.stores.populate(`${id}-shapes`, storeConf);
+    await plugin.stores.populate(`${id}-bindings`, storeConf);
+    // get/create stores
+    const AssetStore = plugin.stores.create(`${id}-assets`, storeConf);
+    const ShapeStore = plugin.stores.create(`${id}-shapes`, storeConf);
+    const BindingStore = plugin.stores.create(`${id}-bindings`, storeConf);
+    // get data
     let shapes = ShapeStore.getAll() ?? {};
     const bindings = BindingStore.getAll() ?? {};
-
-    app.patchAssets(assets);
+    const assets: TDAssets = AssetStore.getAll() ?? {};
+  
     Object.values(assets).map((asset: TDAsset) => {
       if (shapes[asset.id]) return;
       const shape = createShapeObj(asset, app.viewport);
       shapes[asset.id] = shape;
     });
-    app.replacePageContent(shapes, bindings, assets);
+    // format payload
+    return {
+      assets,
+      pages: {
+          bindings,
+          shapes,
+          childIndex: index + 1,
+          id,
+          name: pageData,
+      },
+      pageStates: {
+          id,
+          editingId: undefined,
+          bindingId: undefined,
+          hoveredId: undefined,
+          pointedId: undefined, 
+          selectedIds: [],
+          camera: {
+              point: [0, 0],
+              zoom: 1,
+          }
+      }
+    }
+  }
+  
+  // populate canvas
+  const loadData = async () => {
+    const PageStore = plugin.stores.create('page', storeConf);
+    const pages = PageStore.getAll();
+    pages['page'] = 'Page 1';
+    const pageKeys = Object.keys(pages);
+    const size = pageKeys.length;
+    let doc = app.document;
+    for(let i=0; i < size; i++) {
+      const key = pageKeys[i];
+      const resp = await updateCanvas(key, pages[key], i);
+      if (resp) {
+        doc.pages[key] = resp.pages;
+        doc.pageStates[key] = resp.pageStates;
+        doc.assets = {
+          ...doc.assets,
+          ...resp.assets,
+        }
+      }   
+    }
+    (app as TldrawApp).updateDocument(doc);
+    const currPage = pages['currentPage'];
+    if (currPage) {
+      (app as TldrawApp).changePage(currPage.id);
+      setPage(currPage);
+    }
+  }
+
+  // populate inital data
+  useEffect(() => {
+    if (!app) return;
+    loadData();
 
     // populate users
     const UserStore = plugin.stores.create('users');
@@ -117,9 +180,9 @@ export function UsePlayer(meetingId: string) {
     if (loading) return;
 
     // make false if text or shape is undefined
-    const AssetStore = plugin.stores.create('assets', { volatile: false });
-    const ShapeStore = plugin.stores.create('shapes', { volatile: false });
-    const BindingStore = plugin.stores.create('bindings', { volatile: false });
+    const AssetStore = plugin.stores.create(`${page.id}-assets`, storeConf);
+    const ShapeStore = plugin.stores.create(`${page.id}-shapes`, storeConf);
+    const BindingStore = plugin.stores.create(`${page.id}-bindings`, storeConf);
   
     Object.entries(assets).map((asset: any) => {
       if (asset[1]) {
@@ -156,17 +219,87 @@ export function UsePlayer(meetingId: string) {
   
     
   
-  }, [loading, activeTool]), 250);
+  }, [loading, activeTool, page]), 250);
 
+  function keepSelectedShapesInViewport(app: TldrawApp) {
+    const { selectedIds } = app;
+    if (selectedIds.length <= 0) return;
+  
+    // Get the selected shapes
+    const shapes = selectedIds.map((id) => app.getShape(id));
+  
+    // Get the bounds of the selected shapes
+    const bounds = Utils.getCommonBounds(
+      shapes.map((shape) => app.getShapeUtil(shape).getBounds(shape))
+    );
+  
+    // Define the min/max x/y (here we're using the viewport but
+    // we could use any arbitrary bounds)
+    const { minX, minY, maxX, maxY } = app.viewport;
+
+    // Check for any overlaps between the viewport and the selection bounding box
+    let ox = Math.min(bounds.minX, minX) || Math.max(bounds.maxX - maxX, 0);
+    let oy = Math.min(bounds.minY, minY) || Math.max(bounds.maxY - maxY, 0);
+   
+    // If there's any overlaps, then update the shapes so that
+    // there is no longer any overlap.
+    if (ox !== 0 || oy !== 0) {
+      app.updateShapes(
+        ...shapes.map((shape) => ({
+          id: shape.id,
+          point: [shape.point[0] - ox, shape.point[1] - oy]
+        }))
+      );
+    }
+  }
+  
   // update other users when I move
-  const onChangePresence = throttle((app :TldrawApp, user: TDUser) => {
+  const onChangePresence = (app :TldrawApp, user: TDUser) => {
     if (self?.isRecorder || self?.isHidden) return;
+    if (!ready) return;
+    let vx = 0;
+    let vy = 0; 
+    const zoom = app.zoom;
+    const { maxX: x, maxY: y } = app.viewport;
+    let extX = x;
+    let extY = y;
+    if (zoom > 1) {
+      extX = x * zoom;
+      extY = y * zoom;
+      
+      const px = app.camera.point[0];
+      const py = app.camera.point[1];
+      // camera can't move towards left (points can't be more than 0)
+      if (px >= 0) vx = 0;
+      else {
+        if (x - px > extX) {
+          // limit px
+          vx = - (extX - x);
+        } else {
+          // remain as is
+          vx = px;
+        }
+      }
+      if (py >= 0) vy = 0;
+      else {
+        if (y - py > extY) {
+          // limit py
+          vy = - (extY - y);
+        } else {
+          // remain as is
+          vy = py;
+        }
+      }
+    } 
+    app.setCamera([vx, vy], zoom, "force camera");
+    if (zoom <= 1) keepSelectedShapesInViewport(app);
+
     plugin.emit('onMove', { 
       user, 
       camera: app.camera, 
       size: { x: window.innerWidth, y: window.innerHeight, zoom: app.zoom },
     })
-  }, 200);
+  }
 
   // handle images
   const handleImageUpload = async (_: TldrawApp, file: File, id: string) => {

@@ -84,8 +84,6 @@ const SaveButton = () => {
         setAutoScale((a: boolean) => !a);
     }
 
-    console.log(config);
-
     return (
         <div className={config.darkMode ? 'settings-container-dark' : 'settings-container'}>
             <Icon

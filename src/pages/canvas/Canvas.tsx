@@ -22,7 +22,6 @@ const Canvas = () => {
             darkMode={false}
             showMenu={false}
             autofocus
-            showPages={false}
         />
         <div className="header-elements">
           <Settings />
