@@ -12,6 +12,8 @@ interface Config {
     autoScale?: boolean;
     zenMode?: boolean;
     darkMode?: boolean;
+    infiniteCanvas?: boolean;
+
 }
 
 interface Page {
@@ -24,6 +26,7 @@ const MainProvider = ({ children }: { children: any }) => {
     const [app, setApp] = useState<TldrawApp>();
     const [error, setError] = useState<string>('');
     const [plugin, setPlugin] = useState<DytePlugin>();
+    const [loading, setLoading] = useState<boolean>(false);
     const [page, setPage] = useState<Page>({
         id: 'page',
         name: 'Page 1'
@@ -33,7 +36,13 @@ const MainProvider = ({ children }: { children: any }) => {
     const [following, setFollowing] = useState<string[]>([]);
     const [followers, setFollowers] = useState<Set<string>>(new Set());
     const [users, setUsers] = useState<Record<string, TDUser>>({});
-    const [config, setConfig] = useState<Config>({ role: 'editor', autoScale: false, zenMode: false, darkMode: false });
+    const [config, setConfig] = useState<Config>({ 
+        role: 'editor',
+        autoScale: false,
+        zenMode: false,
+        darkMode: false,
+        infiniteCanvas: false,
+    });
 
     useEffect(() => {
         if (!app || !config) return;
@@ -198,18 +207,20 @@ const MainProvider = ({ children }: { children: any }) => {
         const PageStore = plugin.stores.create('page', storeConf);
         PageStore.subscribe('*', ({ currentPage }: {currentPage: Page}) => {
             if (!currentPage) return;
-            const p = app.getPage(currentPage.id);
-            if (!p) {
-                app.createPage(currentPage.id, currentPage.name);
-            } else {
-                app.changePage(currentPage.id);
+            if (!loading) {
+                const p = app.getPage(currentPage.id);
+                if (!p) {
+                    app.createPage(currentPage.id, currentPage.name);
+                } else {
+                    app.changePage(currentPage.id);
+                }
             }
             setPage(currentPage);
         })
         return () => {
             PageStore.unsubscribe('*');
         }
-    }, [app, plugin])
+    }, [loading, app, plugin])
 
     // update data
     useEffect(() => {
@@ -278,6 +289,7 @@ const MainProvider = ({ children }: { children: any }) => {
         if (!app || !plugin) return;
         
         (app as any).onStateDidChange = () => {
+            if (loading) return;
             const p = app.getPage();
             const PageStore = plugin.stores.get('page');
             if (p.id === page.id) return;
@@ -289,7 +301,7 @@ const MainProvider = ({ children }: { children: any }) => {
             PageStore.set(pageObj.id, pageObj.name);
             setPage(pageObj);
         }
-    }, [app, plugin, page])
+    }, [loading, app, plugin, page])
 
     return (
         <MainContext.Provider
@@ -301,6 +313,8 @@ const MainProvider = ({ children }: { children: any }) => {
                 plugin,
                 config,
                 page,
+                loading,
+                setLoading,
                 setPage,
                 setApp,
                 setError,

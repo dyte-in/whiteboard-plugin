@@ -36,6 +36,11 @@ button {
   @apply fixed top-0 left-0 flex items-center justify-center w-full z-50;
   height: 100vh;
   width: 100vw;
+  z-index: 9999999;
+}
+
+.save-loader {
+  @apply bg-white flex-col;
 }
 
 .loading-page img {

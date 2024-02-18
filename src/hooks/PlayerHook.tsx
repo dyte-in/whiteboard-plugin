@@ -232,7 +232,7 @@ export function UsePlayer(meetingId: string) {
     const bounds = Utils.getCommonBounds(
       shapes.map((shape) => app.getShapeUtil(shape).getBounds(shape))
     );
-  
+
     // Define the min/max x/y (here we're using the viewport but
     // we could use any arbitrary bounds)
     const { minX, minY, maxX, maxY } = app.viewport;
@@ -252,10 +252,8 @@ export function UsePlayer(meetingId: string) {
       );
     }
   }
-  
-  // update other users when I move
-  const onChangePresence = (app :TldrawApp, user: TDUser) => {
-    if (self?.isRecorder || self?.isHidden) return;
+
+  const limitCanvas = (app: TldrawApp) => {
     if (!ready) return;
     let vx = 0;
     let vy = 0; 
@@ -293,7 +291,12 @@ export function UsePlayer(meetingId: string) {
     } 
     app.setCamera([vx, vy], zoom, "force camera");
     if (zoom <= 1) keepSelectedShapesInViewport(app);
-
+  }
+  
+  // update other users when I move
+  const onChangePresence = (app :TldrawApp, user: TDUser) => {
+    if (self?.isRecorder || self?.isHidden) return;
+    if (!config.infiniteCanvas) limitCanvas(app);
     plugin.emit('onMove', { 
       user, 
       camera: app.camera, 
