@@ -2,6 +2,7 @@ import './settings.css';
 import jsPDF from "jspdf";
 import Icon from '../icon/Icon';
 import logo from '../../assets/logo.png';
+import logoWhite from '../../assets/logo-white.png';
 import { MainContext } from '../../context';
 import { useContext, useEffect, useState } from 'react';
 import { TDExportBackground, TDExportType, TldrawApp } from '@tldraw/tldraw';
@@ -24,13 +25,12 @@ const A4_PAPER_RATIO = A4_PAPER_DIMENSIONS.width / A4_PAPER_DIMENSIONS.height;
 const SaveButton = () => {
 
     const [uploaded, setUploaded] = useState<boolean>(false);
+    const [saving, setSaving] = useState<boolean>(false);
     const {
         app,
         plugin,
         page,
         meetingId,
-        loading,
-        setLoading,
         setError,
         autoScale,
         setAutoScale,
@@ -132,12 +132,12 @@ const SaveButton = () => {
         return doc;
     }
     const handleExport = async (ignoreErrors = false) => {
-        if (uploaded || loading) return;
-        setLoading(true);
+        if (uploaded || saving) return;
+        setSaving(true);
         try {
             const isEmpty = app.getAppState().isEmptyCanvas;
             if (isEmpty) {
-                setLoading(false);
+                setSaving(false);
                 return;
             };
             app.setSetting('exportBackground', TDExportBackground.Light);
@@ -150,11 +150,11 @@ const SaveButton = () => {
             }
             if (!doc && ignoreErrors) {
                 handleExportError();
-                setLoading(false);
+                setSaving(false);
                 return;
             }
             if (!doc) {
-                setLoading(false);
+                setSaving(false);
                 setError("Can't capture an empty board.")
                 return;
             }
@@ -175,18 +175,17 @@ const SaveButton = () => {
             else {
                 setError('Error while saving board.')
             }
-            
         }
-        setLoading(false);
+        setSaving(false);
     };
 
     const getExportIcon = () => {
-        if (loading) return 'loading';
+        if (saving) return 'loading';
         if (uploaded) return 'checkmark';
         return 'save';
     }
     const getExportColor = () => {
-        if (loading) return 'loading';
+        if (saving) return 'loading';
         if (uploaded) return 'success';
         return '';
     }
@@ -205,12 +204,18 @@ const SaveButton = () => {
         setAutoScale((a: boolean) => !a);
     }
 
-    if (loading) {
-        return <div className="loading-page save-loader">
-            <img src={logo} />
-            <p>Whiteboard</p>
-            <span>Saving your work, this may take a few seconds...</span>
-        </div>
+    if (saving) {
+        return (
+            config.darkMode
+            ? <div className='save-loader loading-page-dark'>
+              <img src={logoWhite} /> <p>Whiteboard</p>
+              <span>Saving your work, this may take a few seconds...</span>
+            </div>
+            : <div className="save-loader loading-page">
+              <img src={logo} /> <p>Whiteboard</p>
+              <span>Saving your work, this may take a few seconds...</span>
+            </div>
+          )
     }
     return (
         <div className={config.darkMode ? 'settings-container-dark' : 'settings-container'}>

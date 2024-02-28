@@ -8,10 +8,9 @@ import { storeConf } from '../utils/constants';
 
 
 export function UsePlayer(meetingId: string) {
-  const [loading, setLoading] = useState<boolean>(true);
   const [activeTool, setActiveTool] = useState<string>('select');
   const [ready, setReady] = useState<boolean>(false);
-  const { app, page, setPage, plugin, config, setApp, self, setUsers, setError } = useContext(MainContext);
+  const { loading, setLoading, app, page, setPage, plugin, config, setApp, self, setUsers, setError } = useContext(MainContext);
   
   // load app
   const onMount = (tlApp: TldrawApp) => {
@@ -84,7 +83,7 @@ export function UsePlayer(meetingId: string) {
   
     Object.values(assets).map((asset: TDAsset) => {
       if (shapes[asset.id]) return;
-      const shape = createShapeObj(asset, app.viewport);
+      const shape = createShapeObj(asset, app.viewport, page.id);
       shapes[asset.id] = shape;
     });
     // format payload
@@ -114,6 +113,7 @@ export function UsePlayer(meetingId: string) {
   
   // populate canvas
   const loadData = async () => {
+    setLoading(true);
     const PageStore = plugin.stores.create('page', storeConf);
     const pages = PageStore.getAll();
     pages['page'] = 'Page 1';
@@ -138,6 +138,7 @@ export function UsePlayer(meetingId: string) {
       (app as TldrawApp).changePage(currPage.id);
       setPage(currPage);
     }
+    setLoading(false);
   }
 
   // populate inital data
@@ -257,7 +258,7 @@ export function UsePlayer(meetingId: string) {
     if (!ready) return;
     let vx = 0;
     let vy = 0; 
-    const zoom = app.zoom;
+    const zoom = Math.max(1, app.zoom);
     const { maxX: x, maxY: y } = app.viewport;
     let extX = x;
     let extY = y;

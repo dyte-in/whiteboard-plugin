@@ -41,7 +41,7 @@ const MainProvider = ({ children }: { children: any }) => {
         autoScale: false,
         zenMode: false,
         darkMode: false,
-        infiniteCanvas: false,
+        infiniteCanvas: true,
     });
 
     useEffect(() => {
@@ -205,7 +205,12 @@ const MainProvider = ({ children }: { children: any }) => {
     useEffect(() => {
         if (!plugin || !app) return;
         const PageStore = plugin.stores.create('page', storeConf);
-        PageStore.subscribe('*', ({ currentPage }: {currentPage: Page}) => {
+        PageStore.subscribe('*', (data) => {
+            const pId = Object.keys(data)[0];
+            if (!data[pId]) {
+                app.deletePage(pId);
+            }
+            const currentPage = data.currentPage;
             if (!currentPage) return;
             if (!loading) {
                 const p = app.getPage(currentPage.id);
@@ -238,7 +243,7 @@ const MainProvider = ({ children }: { children: any }) => {
                 let shape: TDShape;
                 if (assetArchive[key]) {
                     shape = assetArchive[key];
-                }  else shape = createShapeObj(asset[key], app.viewport);
+                }  else shape = createShapeObj(asset[key], app.viewport, page.id);
                 if (shape) {
                     // NOTE: if this fails the app can crash
                     app.patchCreate([shape]);
@@ -287,7 +292,7 @@ const MainProvider = ({ children }: { children: any }) => {
 
     useEffect(() => {
         if (!app || !plugin) return;
-        
+
         (app as any).onStateDidChange = () => {
             if (loading) return;
             const p = app.getPage();
@@ -296,6 +301,10 @@ const MainProvider = ({ children }: { children: any }) => {
             const pageObj = {
                 id: p.id,
                 name: p.name ?? 'Page',
+            }
+            const currentPage = app.getPage(page.id);
+            if (!currentPage) {
+                PageStore.delete(page.id);
             }
             PageStore.set('currentPage', pageObj);
             PageStore.set(pageObj.id, pageObj.name);
