@@ -95,7 +95,7 @@ const defaultViewport = {
     height: 100
 }
 
-const createShapeObj = (asset: TDAsset, viewPort: TLBounds = defaultViewport) => {
+const createShapeObj = (asset: TDAsset, viewPort: TLBounds = defaultViewport, pageId: string) => {
     const point = (asset as any).point ?? [
         viewPort.width/2 - asset.size[0]/2,
         viewPort.height/2 - asset.size[1]/2,
@@ -104,7 +104,7 @@ const createShapeObj = (asset: TDAsset, viewPort: TLBounds = defaultViewport) =>
         id: asset.id,
         type: 'image',
         name: 'Image',
-        parentId: 'page',
+        parentId: pageId ?? 'page',
         childIndex: 1,
         point: point,
         size: asset.size,

@@ -9,8 +9,9 @@ import Presence from '../../components/presence/Presence';
 import ErrorModal from '../../components/error/Error';
 import Badge from '../../components/badge/Badge';
 import logo from '../../assets/logo.png';
+import logoWhite from '../../assets/logo-white.png'
 const Canvas = () => {
-  const { app, meetingId } = useContext(MainContext);
+  const { app, meetingId, config } = useContext(MainContext);
   const { ...events } = UsePlayer(meetingId);
   const component = { Cursor: CustomCursor };
 
@@ -22,7 +23,6 @@ const Canvas = () => {
             darkMode={false}
             showMenu={false}
             autofocus
-            showPages={false}
         />
         <div className="header-elements">
           <Settings />
@@ -31,7 +31,15 @@ const Canvas = () => {
         <Badge />
         <ErrorModal />
         {
-          (!app || events?.loading) && <div className="loading-page"><img src={logo} /> <p>Whiteboard</p></div>
+          (!app || events?.loading) && (
+            config.darkMode
+            ? <div className='loading-page-dark'>
+              <img src={logoWhite} /> <p>Whiteboard</p>
+            </div>
+            : <div className="loading-page">
+              <img src={logo} /> <p>Whiteboard</p>
+            </div>
+          )
         }
     </div>
   )
