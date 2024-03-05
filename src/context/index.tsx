@@ -3,6 +3,7 @@ import { TDShape, TDUser, TldrawApp  } from '@tldraw/tldraw';
 import React, { useEffect, useState } from 'react'
 import { createShapeObj } from '../utils/helpers';
 import { storeConf } from '../utils/constants';
+import summary from '../api/summary';
 
 const MainContext = React.createContext<any>({});
 
@@ -27,6 +28,7 @@ const MainProvider = ({ children }: { children: any }) => {
     const [app, setApp] = useState<TldrawApp>();
     const [error, setError] = useState<string>('');
     const [plugin, setPlugin] = useState<DytePlugin>();
+    const [pageHistory, setPageHistory] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState<boolean>(false);
     const [page, setPage] = useState<Page>({
         id: 'page',
@@ -44,6 +46,9 @@ const MainProvider = ({ children }: { children: any }) => {
         darkMode: false,
         infiniteCanvas: false,
     });
+
+    // Attaching APIs
+    summary({ app, plugin, pageHistory });
 
     useEffect(() => {
         if (!app || !config) return;
@@ -312,6 +317,7 @@ const MainProvider = ({ children }: { children: any }) => {
                 PageStore.delete(page.id);
             }
             PageStore.set('currentPage', pageObj);
+            setPageHistory(new Set([...pageHistory, pageObj.id]))
             PageStore.set(pageObj.id, pageObj.name);
             setPage(pageObj);
         }
