@@ -50,8 +50,6 @@ export function UsePlayer(meetingId: string) {
       // load app
       setApp(tlApp);
       setLoading(false);
-      tlApp.setStatus('ready');
-      setReady(true);
   };
 
   const lockTools = (tlApp: TldrawApp) => {
@@ -139,6 +137,8 @@ export function UsePlayer(meetingId: string) {
       PageStore.set('page', 'Page 1');
     }
     setLoading(false);
+    app.setStatus('ready');
+    setReady(true);
   }
 
   // populate inital data
@@ -297,7 +297,9 @@ export function UsePlayer(meetingId: string) {
   // update other users when I move
   const onChangePresence = (app :TldrawApp, user: TDUser) => {
     if (self?.isRecorder || self?.isHidden) return;
-    if (!config.infiniteCanvas) limitCanvas(app);
+    if (ready && !config.infiniteCanvas){
+      limitCanvas(app);
+    }
     plugin.emit('onMove', { 
       user, 
       camera: app.camera, 
