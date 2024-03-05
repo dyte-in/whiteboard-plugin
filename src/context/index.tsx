@@ -44,7 +44,7 @@ const MainProvider = ({ children }: { children: any }) => {
         autoScale: false,
         zenMode: false,
         darkMode: false,
-        infiniteCanvas: false,
+        infiniteCanvas: true,
     });
 
     // Attaching APIs
