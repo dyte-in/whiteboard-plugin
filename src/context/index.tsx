@@ -23,6 +23,7 @@ interface Page {
 
 const MainProvider = ({ children }: { children: any }) => {
     const [self, setSelf] = useState<any>();
+    const [enabledBy, setEnabledBy] = useState<string>();
     const [app, setApp] = useState<TldrawApp>();
     const [error, setError] = useState<string>('');
     const [plugin, setPlugin] = useState<DytePlugin>();
@@ -41,7 +42,7 @@ const MainProvider = ({ children }: { children: any }) => {
         autoScale: false,
         zenMode: false,
         darkMode: false,
-        infiniteCanvas: true,
+        infiniteCanvas: false,
     });
 
     useEffect(() => {
@@ -81,6 +82,7 @@ const MainProvider = ({ children }: { children: any }) => {
         const { payload: { peer }} = await dytePlugin.room.getPeer();
         const {payload: { enabledBy }} = await dytePlugin.enabledBy();
     
+        setEnabledBy(enabledBy);
         setSelf(peer);
 
         // populate stores
@@ -106,11 +108,14 @@ const MainProvider = ({ children }: { children: any }) => {
 
         dytePlugin.room.on('config', async ({payload}) => {
             setConfig({ ...config, ...payload });
-            const followID = remoteConfig.get('follow');
-            if (peer.id === enabledBy && !followID) {
-                remoteConfig.set('follow', payload.follow);
-            } else if (followID && followID !== payload) {
-                remoteConfig.set('follow', payload.follow);
+            const remoteFollowId = remoteConfig.get('follow');
+            const followId = payload.follow;
+            if (peer.id === enabledBy) {
+                if (!remoteFollowId && followID)
+                    remoteConfig.set('follow', followID);
+            } 
+            if (remoteFollowId && remoteFollowId !== followId) {
+                remoteConfig.set('follow', followID);
             }
         })
 
@@ -322,6 +327,7 @@ const MainProvider = ({ children }: { children: any }) => {
                 plugin,
                 config,
                 page,
+                enabledBy,
                 loading,
                 setLoading,
                 setPage,

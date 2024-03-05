@@ -1,6 +1,6 @@
 import { MainContext } from '../context';
 import { useCallback, useContext, useEffect, useState } from 'react'
-import { fetchUrl, getFormData, randomColor, debounce, createShapeObj, throttle } from '../utils/helpers';
+import { fetchUrl, getFormData, randomColor, debounce, createShapeObj } from '../utils/helpers';
 import { TDAsset, TDAssets, TDBinding, TDShape, TDUser, TDUserStatus, TldrawApp } from '@tldraw/tldraw';
 import { Utils } from '@tldraw/core'
 import axios from 'axios';
@@ -10,7 +10,7 @@ import { storeConf } from '../utils/constants';
 export function UsePlayer(meetingId: string) {
   const [activeTool, setActiveTool] = useState<string>('select');
   const [ready, setReady] = useState<boolean>(false);
-  const { loading, setLoading, app, page, setPage, plugin, config, setApp, self, setUsers, setError } = useContext(MainContext);
+  const { loading, setLoading, app, page, setPage, plugin, config, setApp, self, enabledBy, setUsers, setError } = useContext(MainContext);
   
   // load app
   const onMount = (tlApp: TldrawApp) => {
@@ -46,8 +46,6 @@ export function UsePlayer(meetingId: string) {
 
       // lock tools
       lockTools(tlApp);
-
-      (window as any).tlApp = tlApp;
 
       // load app
       setApp(tlApp);
@@ -116,7 +114,6 @@ export function UsePlayer(meetingId: string) {
     setLoading(true);
     const PageStore = plugin.stores.create('page', storeConf);
     const pages = PageStore.getAll();
-    pages['page'] = 'Page 1';
     const pageKeys = Object.keys(pages);
     const size = pageKeys.length;
     let doc = app.document;
@@ -137,6 +134,9 @@ export function UsePlayer(meetingId: string) {
     if (currPage) {
       (app as TldrawApp).changePage(currPage.id);
       setPage(currPage);
+    }
+    if (self?.id === enabledBy && !PageStore.get('page')) {
+      PageStore.set('page', 'Page 1');
     }
     setLoading(false);
   }
