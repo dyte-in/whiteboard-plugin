@@ -140,7 +140,7 @@ const SaveButton = () => {
                 setSaving(false);
                 return;
             };
-            app.setSetting('exportBackground', TDExportBackground.Light);
+            app.setSetting('exportBackground', config.darkMode ? TDExportBackground.Dark : TDExportBackground.Light);
             let doc: Blob;
             const pages = Object.keys(app.document.pages);
             if (pages.length > 1) {
