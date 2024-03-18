@@ -48,7 +48,7 @@ const MainProvider = ({ children }: { children: any }) => {
     });
 
     // Attaching APIs
-    summary({ app, plugin, pageHistory });
+    summary({ app, plugin, pageHistory, setLoading });
 
     useEffect(() => {
         if (!app || !config) return;

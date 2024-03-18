@@ -297,9 +297,7 @@ export function UsePlayer(meetingId: string) {
   // update other users when I move
   const onChangePresence = (app :TldrawApp, user: TDUser) => {
     if (self?.isRecorder || self?.isHidden) return;
-    if (ready && !config.infiniteCanvas){
-      limitCanvas(app);
-    }
+    if (ready && !config.infiniteCanvas) limitCanvas(app);
     plugin.emit('onMove', { 
       user, 
       camera: app.camera, 
