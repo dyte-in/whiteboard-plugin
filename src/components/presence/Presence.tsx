@@ -37,7 +37,7 @@ const Presence = () => {
         const n = name.split(' ');
         let initials = '';
         n.map((x, index) => {
-            if (index < 2) initials += x[0].toUpperCase();
+            if (index < 2) initials += x[0]?.toUpperCase();
         })
         return initials ?? 'P';
     }
