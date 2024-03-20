@@ -51,6 +51,10 @@ const summary = ({ app, plugin, pageHistory, setLoading }: Props) => {
             (app as TldrawApp).changePage(page);
         })
 
+        plugin.room.on('add-page', ({ payload }) => {
+            const pageName = payload.page;
+            (app as TldrawApp).createPage(undefined, pageName);
+        })
     }, [app, plugin])
 }
 

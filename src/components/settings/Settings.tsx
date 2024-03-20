@@ -217,6 +217,7 @@ const SaveButton = () => {
             </div>
           )
     }
+    if (!config?.modifiedHeader) return null;
     return (
         <div className={config.darkMode ? 'settings-container-dark' : 'settings-container'}>
             <Icon

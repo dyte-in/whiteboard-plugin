@@ -13,6 +13,7 @@ interface Config {
     autoScale?: boolean;
     zenMode?: boolean;
     darkMode?: boolean;
+    modifiedHeader?: boolean;
     infiniteCanvas?: boolean;
 
 }
@@ -45,6 +46,7 @@ const MainProvider = ({ children }: { children: any }) => {
         zenMode: false,
         darkMode: false,
         infiniteCanvas: true,
+        modifiedHeader: true,
     });
 
     // Attaching APIs
