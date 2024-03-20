@@ -10,6 +10,16 @@ interface Props {
     setLoading: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
+const blobToBase64 = (blob: Blob): Promise<string> => {
+    const reader = new FileReader();
+    reader.readAsDataURL(blob);
+    return new Promise(resolve => {
+      reader.onloadend = () => {
+        resolve(reader.result as string);
+      };
+    });
+  };
+
 const summary = ({ app, plugin, pageHistory, setLoading }: Props) => {
     useEffect(() => {
         if (!app || !plugin) return;
@@ -21,7 +31,7 @@ const summary = ({ app, plugin, pageHistory, setLoading }: Props) => {
                     transparentBackground: true,
                 });
                 if (preview) {
-                    image = URL.createObjectURL(preview);
+                    image = await blobToBase64(preview)
                 }
             } catch (e) {}
         
