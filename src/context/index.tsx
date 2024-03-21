@@ -60,8 +60,7 @@ const MainProvider = ({ children }: { children: any }) => {
     const resizeCanvas = () => {
         if (!autoScale || !app) return;
         if (following.length) return;
-        const selected = app.selectedIds;
-        if (selected?.length) return;
+        if (app?.appState?.status === 'creating') return;
         app.selectAll();
         app.zoomToSelection();
         app.zoomToFit();
@@ -108,6 +107,7 @@ const MainProvider = ({ children }: { children: any }) => {
 
         dytePlugin.room.on('config', async ({payload}) => {
             setConfig({ ...config, ...payload });
+            if (payload.autoScale) setAutoScale(true);
             const remoteFollowId = remoteConfig.get('follow');
             const followId = payload.follow;
             if (peer.id === enabledBy) {
@@ -293,7 +293,7 @@ const MainProvider = ({ children }: { children: any }) => {
             ShapeStore.unsubscribe('*');
             BindingStore.unsubscribe('*');
         }
-    }, [app, plugin, page])
+    }, [app, plugin, page, autoScale])
 
     useEffect(() => {
         if (!app || !plugin) return;

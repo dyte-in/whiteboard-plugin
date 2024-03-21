@@ -218,9 +218,7 @@ export function UsePlayer(meetingId: string) {
       activeTool === 'text'
     ) return;
     app.selectTool(activeTool as any);
-  
-    
-  
+    app.selectNone();
   }, [loading, activeTool, page]), 250);
 
   function keepSelectedShapesInViewport(app: TldrawApp) {
