@@ -13,7 +13,7 @@ interface Config {
     zenMode?: boolean;
     darkMode?: boolean;
     infiniteCanvas?: boolean;
-
+    exportMode?: 'pdf' | 'jpg';
 }
 
 interface Page {
@@ -43,6 +43,7 @@ const MainProvider = ({ children }: { children: any }) => {
         zenMode: false,
         darkMode: false,
         infiniteCanvas: true,
+        exportMode: 'jpg',
     });
 
     useEffect(() => {
