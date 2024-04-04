@@ -91,6 +91,13 @@ const MainProvider = ({ children }: { children: any }) => {
         await dytePlugin.stores.populate('page', storeConf);
 
 
+        // dispatch onMove events
+        window.addEventListener("emit-on-move", (data) => {
+            const { detail } = data as any;
+            dytePlugin.emit('onMove', detail);
+        })
+
+
         setPlugin(dytePlugin);
 
         const remoteConfig = dytePlugin.stores.create('config');
@@ -107,7 +114,7 @@ const MainProvider = ({ children }: { children: any }) => {
         }
 
         dytePlugin.room.on('config', async ({payload}) => {
-            setConfig({ ...config, ...payload });
+            setConfig((c) => ({ ...c, ...payload }));
             if (payload.autoScale) setAutoScale(true);
             const remoteFollowId = remoteConfig.get('follow');
             const followId = payload.follow;

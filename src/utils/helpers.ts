@@ -37,15 +37,16 @@ const debounce = (cb: any, delay: number) => {
     }
 }
 
-const throttle = (cb: any, delay: number) => {
-    let previousCall = new Date().getTime();
-    return function(...args: any) {
-        const time = new Date().getTime();
-        if (time - previousCall >= delay) {
-            previousCall = time;
-            cb(...args);
-        }
-    }
+let lastExecuted = Date.now() - 400;
+const emitToPeers = (detail: any) => {
+    const time = Date.now();
+    if ( time - lastExecuted > 400) {
+        const event = new CustomEvent("emit-on-move", {
+            detail,
+        });
+        window.dispatchEvent(event);
+        lastExecuted = Date.now();
+    } 
 }
 
 const getFormData = (file: Blob, fileName: string) => {
@@ -121,4 +122,4 @@ const createShapeObj = (asset: TDAsset, viewPort: TLBounds = defaultViewport, pa
     return obj as TDShape;
 }
 
-export { createShapeObj, randomColor, debounce, throttle, getFormData, fetchUrl };
+export { createShapeObj, randomColor, debounce, emitToPeers, getFormData, fetchUrl };

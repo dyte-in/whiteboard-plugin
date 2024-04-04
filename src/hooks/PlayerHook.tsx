@@ -1,6 +1,6 @@
 import { MainContext } from '../context';
-import { useCallback, useContext, useEffect, useState } from 'react'
-import { fetchUrl, getFormData, randomColor, debounce, createShapeObj } from '../utils/helpers';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react'
+import { fetchUrl, getFormData, randomColor, debounce, createShapeObj, emitToPeers } from '../utils/helpers';
 import { TDAsset, TDAssets, TDBinding, TDShape, TDUser, TDUserStatus, TldrawApp } from '@tldraw/tldraw';
 import { Utils } from '@tldraw/core'
 import axios from 'axios';
@@ -11,7 +11,7 @@ export function UsePlayer(meetingId: string) {
   const [activeTool, setActiveTool] = useState<string>('select');
   const [ready, setReady] = useState<boolean>(false);
   const { loading, setLoading, app, page, setPage, plugin, config, setApp, self, enabledBy, setUsers, setError } = useContext(MainContext);
-  
+
   // load app
   const onMount = (tlApp: TldrawApp) => {
       // load room
@@ -37,7 +37,7 @@ export function UsePlayer(meetingId: string) {
           const UserStore = plugin.stores.create('users');
           UserStore.set(self.id, user);
         }      
-      }
+      }      
       else setError('Could not load user.');  
     
       // zoom to fit content
@@ -216,9 +216,9 @@ export function UsePlayer(meetingId: string) {
 
     if (
       activeTool === 'text'
-    ) return;
-    app.selectTool(activeTool as any);
+    ) return;   
     app.selectNone();
+    app.selectTool(activeTool as any);
   }, [loading, activeTool, page]), 250);
 
   function keepSelectedShapesInViewport(app: TldrawApp) {
@@ -297,7 +297,7 @@ export function UsePlayer(meetingId: string) {
   const onChangePresence = (app :TldrawApp, user: TDUser) => {
     if (self?.isRecorder || self?.isHidden) return;
     if (ready && !config.infiniteCanvas) limitCanvas(app);
-    plugin.emit('onMove', { 
+    emitToPeers({
       user, 
       camera: app.camera, 
       size: { x: window.innerWidth, y: window.innerHeight, zoom: app.zoom },
