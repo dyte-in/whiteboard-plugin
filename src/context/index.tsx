@@ -1,7 +1,7 @@
 import DytePlugin from '@dytesdk/plugin-sdk';
 import { TDShape, TDUser, TldrawApp  } from '@tldraw/tldraw';
 import React, { useEffect, useState } from 'react'
-import { createShapeObj } from '../utils/helpers';
+import { createShapeObj, throttle } from '../utils/helpers';
 import { storeConf } from '../utils/constants';
 
 const MainContext = React.createContext<any>({});
@@ -92,10 +92,10 @@ const MainProvider = ({ children }: { children: any }) => {
 
 
         // dispatch onMove events
-        window.addEventListener("emit-on-move", (data) => {
+        window.addEventListener("emit-on-move", throttle((data: any) => {
             const { detail } = data as any;
             dytePlugin.emit('onMove', detail);
-        })
+        }, 400))
 
 
         setPlugin(dytePlugin);

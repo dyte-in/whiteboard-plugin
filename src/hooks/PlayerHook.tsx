@@ -1,6 +1,6 @@
 import { MainContext } from '../context';
 import { useCallback, useContext, useEffect, useRef, useState } from 'react'
-import { fetchUrl, getFormData, randomColor, debounce, createShapeObj, emitToPeers } from '../utils/helpers';
+import { fetchUrl, getFormData, randomColor, debounce, createShapeObj } from '../utils/helpers';
 import { TDAsset, TDAssets, TDBinding, TDShape, TDUser, TDUserStatus, TldrawApp } from '@tldraw/tldraw';
 import { Utils } from '@tldraw/core'
 import axios from 'axios';
@@ -297,11 +297,13 @@ export function UsePlayer(meetingId: string) {
   const onChangePresence = (app :TldrawApp, user: TDUser) => {
     if (self?.isRecorder || self?.isHidden) return;
     if (ready && !config.infiniteCanvas) limitCanvas(app);
-    emitToPeers({
+    const userPayload = {
       user, 
       camera: app.camera, 
       size: { x: window.innerWidth, y: window.innerHeight, zoom: app.zoom },
-    })
+    };
+    const event = new CustomEvent("emit-on-move", { detail: userPayload });
+    window.dispatchEvent(event);
   }
 
   // handle images
