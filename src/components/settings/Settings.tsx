@@ -144,7 +144,6 @@ const SaveButton = () => {
             let doc: Blob;
             const pages = Object.keys(app.document.pages);
             if (pages.length > 1 || config.exportMode === 'pdf') {
-                console.log('here???')
                 doc = await generatePdf();
             } else {
                 doc =  await app.getImage(TDExportType.JPG);
@@ -199,7 +198,7 @@ const SaveButton = () => {
         return () => {
             plugin.room.removeListeners('save-board');
         }
-    }, [plugin, app])
+    }, [plugin, app, config])
 
     const toggleAutoScale = () => {
         setAutoScale((a: boolean) => !a);
