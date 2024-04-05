@@ -1,7 +1,7 @@
 import DytePlugin from '@dytesdk/plugin-sdk';
 import { TDShape, TDUser, TldrawApp  } from '@tldraw/tldraw';
 import React, { useEffect, useState } from 'react'
-import { createShapeObj } from '../utils/helpers';
+import { createShapeObj, throttle } from '../utils/helpers';
 import { storeConf } from '../utils/constants';
 import summary from '../api/summary';
 
@@ -15,7 +15,7 @@ interface Config {
     darkMode?: boolean;
     modifiedHeader?: boolean;
     infiniteCanvas?: boolean;
-
+    exportMode?: 'pdf' | 'jpg';
 }
 
 interface Page {
@@ -47,6 +47,7 @@ const MainProvider = ({ children }: { children: any }) => {
         darkMode: false,
         infiniteCanvas: true,
         modifiedHeader: true,
+        exportMode: 'jpg',
     });
 
     // Attaching APIs
@@ -67,8 +68,7 @@ const MainProvider = ({ children }: { children: any }) => {
     const resizeCanvas = () => {
         if (!autoScale || !app) return;
         if (following.length) return;
-        const selected = app.selectedIds;
-        if (selected?.length) return;
+        if (app?.appState?.status === 'creating') return;
         app.selectAll();
         app.zoomToSelection();
         app.zoomToFit();
@@ -98,6 +98,13 @@ const MainProvider = ({ children }: { children: any }) => {
         await dytePlugin.stores.populate('page', storeConf);
 
 
+        // dispatch onMove events
+        window.addEventListener("emit-on-move", throttle((data: any) => {
+            const { detail } = data as any;
+            dytePlugin.emit('onMove', detail);
+        }, 400))
+
+
         setPlugin(dytePlugin);
 
         const remoteConfig = dytePlugin.stores.create('config');
@@ -114,7 +121,8 @@ const MainProvider = ({ children }: { children: any }) => {
         }
 
         dytePlugin.room.on('config', async ({payload}) => {
-            setConfig({ ...config, ...payload });
+            setConfig((c) => ({ ...c, ...payload }));
+            if (payload.autoScale) setAutoScale(true);
             const remoteFollowId = remoteConfig.get('follow');
             const followId = payload.follow;
             if (peer.id === enabledBy) {
@@ -300,7 +308,7 @@ const MainProvider = ({ children }: { children: any }) => {
             ShapeStore.unsubscribe('*');
             BindingStore.unsubscribe('*');
         }
-    }, [app, plugin, page])
+    }, [app, plugin, page, autoScale])
 
     useEffect(() => {
         if (!app || !plugin) return;

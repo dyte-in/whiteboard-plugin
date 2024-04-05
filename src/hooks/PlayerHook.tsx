@@ -1,5 +1,5 @@
 import { MainContext } from '../context';
-import { useCallback, useContext, useEffect, useState } from 'react'
+import { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { fetchUrl, getFormData, randomColor, debounce, createShapeObj } from '../utils/helpers';
 import { TDAsset, TDAssets, TDBinding, TDShape, TDUser, TDUserStatus, TldrawApp } from '@tldraw/tldraw';
 import { Utils } from '@tldraw/core'
@@ -11,7 +11,7 @@ export function UsePlayer(meetingId: string) {
   const [activeTool, setActiveTool] = useState<string>('select');
   const [ready, setReady] = useState<boolean>(false);
   const { loading, setLoading, app, page, setPage, plugin, config, setApp, self, enabledBy, setUsers, setError } = useContext(MainContext);
-  
+
   // load app
   const onMount = (tlApp: TldrawApp) => {
       // load room
@@ -37,7 +37,7 @@ export function UsePlayer(meetingId: string) {
           const UserStore = plugin.stores.create('users');
           UserStore.set(self.id, user);
         }      
-      }
+      }      
       else setError('Could not load user.');  
     
       // zoom to fit content
@@ -47,6 +47,7 @@ export function UsePlayer(meetingId: string) {
       // lock tools
       lockTools(tlApp);
 
+      (window as any).tlApp = tlApp;
       // load app
       setApp(tlApp);
       setLoading(false);
@@ -215,11 +216,9 @@ export function UsePlayer(meetingId: string) {
 
     if (
       activeTool === 'text'
-    ) return;
+    ) return;   
+    app.selectNone();
     app.selectTool(activeTool as any);
-  
-    
-  
   }, [loading, activeTool, page]), 250);
 
   function keepSelectedShapesInViewport(app: TldrawApp) {
@@ -298,11 +297,13 @@ export function UsePlayer(meetingId: string) {
   const onChangePresence = (app :TldrawApp, user: TDUser) => {
     if (self?.isRecorder || self?.isHidden) return;
     if (ready && !config.infiniteCanvas) limitCanvas(app);
-    plugin.emit('onMove', { 
+    const userPayload = {
       user, 
       camera: app.camera, 
       size: { x: window.innerWidth, y: window.innerHeight, zoom: app.zoom },
-    })
+    };
+    const event = new CustomEvent("emit-on-move", { detail: userPayload });
+    window.dispatchEvent(event);
   }
 
   // handle images
