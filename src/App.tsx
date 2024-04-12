@@ -1,5 +1,5 @@
 import './index.css';
-import { useContext } from 'react';
+import { useContext, useEffect } from 'react';
 import { MainContext } from './context';
 import logo from '../src/assets/icon.png';
 import logoWhite from '../src/assets/logo-white.png';

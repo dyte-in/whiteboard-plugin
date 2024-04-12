@@ -5,9 +5,11 @@
   "main": "index.js",
   "scripts": {
     "dev": "vite",
+    "preview": "vite preview",
     "build": "tsc && vite build",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "publish": "npm run build && cp dyte-config.json ./dist/dyte-config.json && cd dist && dyte plugins publish -l",
+    "publish-devel": "npm run build && cp dyte-config-staging.json ./dist/dyte-config.json && cd dist && dyte plugins publish -l"
   },
   "keywords": [],
   "author": "",

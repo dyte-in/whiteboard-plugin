@@ -137,6 +137,7 @@ const SaveButton = () => {
         try {
             const isEmpty = app.getAppState().isEmptyCanvas;
             if (isEmpty) {
+                handleExportError();
                 setSaving(false);
                 return;
             };
