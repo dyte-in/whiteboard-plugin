@@ -25,6 +25,13 @@ interface Page {
 
 const MainProvider = ({ children }: { children: any }) => {
     const [self, setSelf] = useState<any>();
+    const [saving, setSaving] = useState<{
+        saving: boolean;
+        ignoreErrors: boolean;
+    }>({
+        saving: false,
+        ignoreErrors: false,
+    });
     const [enabledBy, setEnabledBy] = useState<string>();
     const [app, setApp] = useState<TldrawApp>();
     const [error, setError] = useState<string>('');
@@ -310,29 +317,6 @@ const MainProvider = ({ children }: { children: any }) => {
         }
     }, [app, plugin, page, autoScale])
 
-    useEffect(() => {
-        if (!app || !plugin) return;
-
-        (app as any).onStateDidChange = () => {
-            if (loading) return;
-            const p = app.getPage();
-            const PageStore = plugin.stores.get('page');
-            if (p.id === page.id) return;
-            const pageObj = {
-                id: p.id,
-                name: p.name ?? 'Page',
-            }
-            const currentPage = app.getPage(page.id);
-            if (!currentPage) {
-                PageStore.delete(page.id);
-            }
-            PageStore.set('currentPage', pageObj);
-            setPageHistory(new Set([...pageHistory, pageObj.id]))
-            PageStore.set(pageObj.id, pageObj.name);
-            setPage(pageObj);
-        }
-    }, [loading, app, plugin, page])
-
     return (
         <MainContext.Provider
             value={{
@@ -354,9 +338,12 @@ const MainProvider = ({ children }: { children: any }) => {
                 meetingId,
                 following,
                 followers,
+                saving,
+                setSaving,
                 setAutoScale,
                 setFollowers,
                 setFollowing,
+                setPageHistory,
             }}
         >
             {children}

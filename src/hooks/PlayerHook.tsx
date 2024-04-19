@@ -10,7 +10,22 @@ import { storeConf } from '../utils/constants';
 export function UsePlayer(meetingId: string) {
   const [activeTool, setActiveTool] = useState<string>('select');
   const [ready, setReady] = useState<boolean>(false);
-  const { loading, setLoading, app, page, setPage, plugin, config, setApp, self, enabledBy, setUsers, setError } = useContext(MainContext);
+  const {
+    app,
+    page,
+    self,
+    plugin,
+    config,
+    setApp,
+    saving,
+    setPage,
+    loading,
+    setUsers,
+    setError,
+    enabledBy,
+    setLoading,
+    setPageHistory,
+  } = useContext(MainContext);
 
   // load app
   const onMount = (tlApp: TldrawApp) => {
@@ -179,7 +194,27 @@ export function UsePlayer(meetingId: string) {
       bindings: Record<string, TDBinding | undefined>,
       assets: Record<string, TDAsset | undefined>,
   ) => {
-    if (loading) return;
+    if (!ready || saving?.saving || loading) return;
+
+    // handle page changes
+    const PageStore = plugin.stores.get('page');
+    const currPage = app.getPage(app.pageState.id);
+    const lastPage = PageStore.get('currentPage') ?? {
+      id: 'page', name: 'Page 1',
+    };
+
+    if (currPage.id !== lastPage.id) {
+      const p = app.getPage(lastPage.id);
+      if (!p) PageStore.delete(lastPage.id);
+      const pageObj = {
+        id: currPage.id,
+        name: currPage.name ?? 'Page',
+      };
+      setPage(pageObj);
+      PageStore.set('currentPage', pageObj);
+      PageStore.set(pageObj.id, pageObj.name);
+      setPageHistory((history: any) => new Set([...history, pageObj.id]));
+    }
 
     // make false if text or shape is undefined
     const AssetStore = plugin.stores.create(`${page.id}-assets`, storeConf);
@@ -214,12 +249,10 @@ export function UsePlayer(meetingId: string) {
       if (isBinding) BindingStore.delete(binding[0]);
     })
 
-    if (
-      activeTool === 'text'
-    ) return;   
+    if (activeTool === 'text') return;   
     app.selectNone();
     app.selectTool(activeTool as any);
-  }, [loading, activeTool, page]), 250);
+  }, [ready, saving, loading, activeTool]), 250);
 
   function keepSelectedShapesInViewport(app: TldrawApp) {
     const { selectedIds } = app;
@@ -294,8 +327,8 @@ export function UsePlayer(meetingId: string) {
   }
   
   // update other users when I move
-  const onChangePresence = (app :TldrawApp, user: TDUser) => {
-    if (self?.isRecorder || self?.isHidden) return;
+  const onChangePresence = useCallback((app :TldrawApp, user: TDUser) => {
+    if (self?.isRecorder || self?.isHidden || saving?.saving) return;
     if (ready && !config.infiniteCanvas) limitCanvas(app);
     const userPayload = {
       user, 
@@ -304,7 +337,7 @@ export function UsePlayer(meetingId: string) {
     };
     const event = new CustomEvent("emit-on-move", { detail: userPayload });
     window.dispatchEvent(event);
-  }
+  }, [self, saving])
 
   // handle images
   const handleImageUpload = async (_: TldrawApp, file: File, id: string) => {
