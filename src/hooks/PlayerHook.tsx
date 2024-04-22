@@ -224,42 +224,26 @@ export function UsePlayer(meetingId: string) {
     const ShapeStore = plugin.stores.create(`${page.id}-shapes`, storeConf);
     const BindingStore = plugin.stores.create(`${page.id}-bindings`, storeConf);
   
-    const assetsToAdd: {key: string; payload: any}[] = [];
-    const shapesToAdd: {key: string; payload: any}[] = [];
-    const shapesToDelete: { key: string }[] = [];
-    const assetsToDelete: { key: string }[] = [];
     Object.entries(assets).map(async (asset: any) => {
       if (asset[1]) {
         const assetShape = shapes[asset[0]];
-        assetsToAdd.push({
-          key: asset[0],
-          payload: {...asset[1], point: assetShape?.point}
-        })
+        AssetStore.set(asset[0],  {...asset[1], point: assetShape?.point})
       }
     })
     Object.entries(shapes).map(async (shape) => {
       if (shape[1]) {
-        if (!assets[shape[0]]) shapesToAdd.push({ key: shape[0], payload: shape[1] })
+        if (!assets[shape[0]]) ShapeStore.set(shape[0], shape[1]);
         return;
       }
       const isShape = ShapeStore.get(shape[0]);
       const isAsset = AssetStore.get(shape[0]);
-      if (isShape || isAsset) shapesToDelete.push({ key: shape[0] })
+      if (isShape || isAsset) ShapeStore.delete(shape[0])
       if (isAsset) {
-        assetsToDelete.push({ key: shape[0] })
+        AssetStore.delete(shape[0]);
         await handleImageDelete(shape[0]);
       }
     })
-    try {
-      AssetStore.bulkDelete(assetsToDelete);
-      AssetStore.bulkSet(assetsToAdd);
-      setTimeout(() => {
-        ShapeStore.bulkDelete(shapesToDelete);
-        ShapeStore.bulkSet(shapesToAdd);
-      }, 300)
-    } catch (e) {
-      console.log(e);
-    }
+
     Object.entries(bindings).map(async (binding) => {
       if (binding[1]) {
         await BindingStore.set(binding[0], binding[1]);
