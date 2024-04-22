@@ -132,9 +132,8 @@ const MainProvider = ({ children }: { children: any }) => {
             if (payload.autoScale) setAutoScale(true);
             const remoteFollowId = remoteConfig.get('follow');
             const followId = payload.follow;
-            if (peer.id === enabledBy) {
-                if (!remoteFollowId && followID)
-                    remoteConfig.set('follow', followID);
+            if (peer.id === enabledBy && !remoteFollowId && followID) {
+                remoteConfig.set('follow', followID);
             } 
             if (remoteFollowId && remoteFollowId !== followId) {
                 remoteConfig.set('follow', followID);

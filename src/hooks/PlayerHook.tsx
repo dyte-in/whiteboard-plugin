@@ -1,10 +1,11 @@
 import { MainContext } from '../context';
-import { useCallback, useContext, useEffect, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useState } from 'react'
 import { fetchUrl, getFormData, randomColor, debounce, createShapeObj } from '../utils/helpers';
 import { TDAsset, TDAssets, TDBinding, TDShape, TDUser, TDUserStatus, TldrawApp } from '@tldraw/tldraw';
 import { Utils } from '@tldraw/core'
 import axios from 'axios';
 import { storeConf } from '../utils/constants';
+import { DyteStore } from '@dytesdk/plugin-sdk';
 
 
 export function UsePlayer(meetingId: string) {
@@ -211,8 +212,10 @@ export function UsePlayer(meetingId: string) {
         name: currPage.name ?? 'Page',
       };
       setPage(pageObj);
-      PageStore.set('currentPage', pageObj);
-      PageStore.set(pageObj.id, pageObj.name);
+      (PageStore as DyteStore).bulkSet([
+        { key: 'currentPage', payload: pageObj },
+        { key: pageObj.id, payload: pageObj.name },
+      ])
       setPageHistory((history: any) => new Set([...history, pageObj.id]));
     }
 
@@ -221,28 +224,45 @@ export function UsePlayer(meetingId: string) {
     const ShapeStore = plugin.stores.create(`${page.id}-shapes`, storeConf);
     const BindingStore = plugin.stores.create(`${page.id}-bindings`, storeConf);
   
-    Object.entries(assets).map((asset: any) => {
+    const assetsToAdd: {key: string; payload: any}[] = [];
+    const shapesToAdd: {key: string; payload: any}[] = [];
+    const shapesToDelete: { key: string }[] = [];
+    const assetsToDelete: { key: string }[] = [];
+    Object.entries(assets).map(async (asset: any) => {
       if (asset[1]) {
         const assetShape = shapes[asset[0]];
-        AssetStore.set(asset[0], {...asset[1], point: assetShape?.point});
+        assetsToAdd.push({
+          key: asset[0],
+          payload: {...asset[1], point: assetShape?.point}
+        })
       }
     })
     Object.entries(shapes).map(async (shape) => {
       if (shape[1]) {
-        if (!assets[shape[0]]) ShapeStore.set(shape[0], shape[1]);
+        if (!assets[shape[0]]) shapesToAdd.push({ key: shape[0], payload: shape[1] })
         return;
       }
       const isShape = ShapeStore.get(shape[0]);
       const isAsset = AssetStore.get(shape[0]);
-      if (isShape || isAsset) await ShapeStore.delete(shape[0]);
+      if (isShape || isAsset) shapesToDelete.push({ key: shape[0] })
       if (isAsset) {
-        await AssetStore.delete(shape[0]);
+        assetsToDelete.push({ key: shape[0] })
         await handleImageDelete(shape[0]);
       }
     })
-    Object.entries(bindings).map((binding) => {
+    try {
+      AssetStore.bulkDelete(assetsToDelete);
+      AssetStore.bulkSet(assetsToAdd);
+      setTimeout(() => {
+        ShapeStore.bulkDelete(shapesToDelete);
+        ShapeStore.bulkSet(shapesToAdd);
+      }, 300)
+    } catch (e) {
+      console.log(e);
+    }
+    Object.entries(bindings).map(async (binding) => {
       if (binding[1]) {
-        BindingStore.set(binding[0], binding[1]);
+        await BindingStore.set(binding[0], binding[1]);
         return;
       }
       const isBinding = BindingStore.get(binding[0]);
