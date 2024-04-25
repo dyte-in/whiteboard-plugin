@@ -4,7 +4,7 @@ import { fetchUrl, getFormData, randomColor, debounce, createShapeObj } from '..
 import { TDAsset, TDAssets, TDBinding, TDShape, TDUser, TDUserStatus, TldrawApp } from '@tldraw/tldraw';
 import { Utils } from '@tldraw/core'
 import axios from 'axios';
-import { storeConf } from '../utils/constants';
+import { INDEX, setIndex, storeConf } from '../utils/constants';
 import { DyteStore } from '@dytesdk/plugin-sdk';
 
 
@@ -21,6 +21,7 @@ export function UsePlayer(meetingId: string) {
     saving,
     setPage,
     loading,
+    setPages,
     setUsers,
     setError,
     enabledBy,
@@ -134,6 +135,16 @@ export function UsePlayer(meetingId: string) {
     let doc = app.document;
     for(let i=0; i < size; i++) {
       const key = pageKeys[i];
+      if (key !== 'currentPage') {
+        const index = pages[key].split(' ')[1] ?? '1';
+        if (index) {
+          const parsedIndex = parseInt(index);
+          if (!Number.isNaN(parsedIndex)) {
+            setIndex(Math.max(INDEX, parsedIndex));
+          }
+        }
+        setPages((p: any) => [...p, { id: key, name: pages[key]}]);
+      }
       const resp = await updateCanvas(key, pages[key], i);
       if (resp) {
         doc.pages[key] = resp.pages;
@@ -150,8 +161,11 @@ export function UsePlayer(meetingId: string) {
       (app as TldrawApp).changePage(currPage.id);
       setPage(currPage);
     }
-    if (self?.id === enabledBy && !PageStore.get('page')) {
-      PageStore.set('page', 'Page 1');
+    if (!PageStore.get('page')) {
+      setPages((p: any) => [...p, { id: 'page', name: 'Page 1'}]);
+      if (self?.id === enabledBy) {
+        PageStore.set('page', 'Page 1');
+      }
     }
     setLoading(false);
     app.setStatus('ready');
@@ -195,29 +209,7 @@ export function UsePlayer(meetingId: string) {
       bindings: Record<string, TDBinding | undefined>,
       assets: Record<string, TDAsset | undefined>,
   ) => {
-    if (!ready || saving?.saving || loading) return;
-
-    // handle page changes
-    const PageStore = plugin.stores.get('page');
-    const currPage = app.getPage(app.pageState.id);
-    const lastPage = PageStore.get('currentPage') ?? {
-      id: 'page', name: 'Page 1',
-    };
-
-    if (currPage.id !== lastPage.id) {
-      const p = app.getPage(lastPage.id);
-      if (!p) PageStore.delete(lastPage.id);
-      const pageObj = {
-        id: currPage.id,
-        name: currPage.name ?? 'Page',
-      };
-      setPage(pageObj);
-      (PageStore as DyteStore).bulkSet([
-        { key: 'currentPage', payload: pageObj },
-        { key: pageObj.id, payload: pageObj.name },
-      ])
-      setPageHistory((history: any) => new Set([...history, pageObj.id]));
-    }
+    if (!ready || loading) return;
 
     // make false if text or shape is undefined
     const AssetStore = plugin.stores.create(`${page.id}-assets`, storeConf);
@@ -256,7 +248,7 @@ export function UsePlayer(meetingId: string) {
     if (activeTool === 'text') return;   
     app.selectNone();
     app.selectTool(activeTool as any);
-  }, [ready, saving, loading, activeTool]), 250);
+  }, [ready, page, loading, activeTool]), 250);
 
   function keepSelectedShapesInViewport(app: TldrawApp) {
     const { selectedIds } = app;

@@ -32,6 +32,7 @@ const MainProvider = ({ children }: { children: any }) => {
         saving: false,
         ignoreErrors: false,
     });
+    const [pages, setPages] = useState<{ name: string, id: string }[]>([]);
     const [enabledBy, setEnabledBy] = useState<string>();
     const [app, setApp] = useState<TldrawApp>();
     const [error, setError] = useState<string>('');
@@ -40,7 +41,7 @@ const MainProvider = ({ children }: { children: any }) => {
     const [loading, setLoading] = useState<boolean>(false);
     const [page, setPage] = useState<Page>({
         id: 'page',
-        name: 'Page 1'
+        name: 'Page 1',
     });
     const [autoScale, setAutoScale] = useState<boolean>(false);
     const [meetingId, setMeetingId] = useState<string>('');
@@ -227,36 +228,9 @@ const MainProvider = ({ children }: { children: any }) => {
         })
     }, [app, plugin, users, following]);
 
-    // update page
-    useEffect(() => {
-        if (!plugin || !app) return;
-        const PageStore = plugin.stores.create('page', storeConf);
-        PageStore.subscribe('*', (data) => {
-            const pId = Object.keys(data)[0];
-            if (!data[pId]) {
-                app.deletePage(pId);
-            }
-            const currentPage = data.currentPage;
-            if (!currentPage) return;
-            if (!loading) {
-                const p = app.getPage(currentPage.id);
-                if (!p) {
-                    app.createPage(currentPage.id, currentPage.name);
-                } else {
-                    app.changePage(currentPage.id);
-                }
-            }
-            setPage(currentPage);
-        })
-        return () => {
-            PageStore.unsubscribe('*');
-        }
-    }, [loading, app, plugin])
-
     // update data
     useEffect(() => {
         if (!plugin || !app) return;
-
         const AssetStore = plugin.stores.create(`${page.id}-assets`, storeConf);
         const ShapeStore = plugin.stores.create(`${page.id}-shapes`, storeConf);
         const BindingStore = plugin.stores.create(`${page.id}-bindings`, storeConf);
@@ -343,6 +317,8 @@ const MainProvider = ({ children }: { children: any }) => {
                 setFollowers,
                 setFollowing,
                 setPageHistory,
+                pages,
+                setPages,
             }}
         >
             {children}
