@@ -45,8 +45,8 @@ const MainProvider = ({ children }: { children: any }) => {
         role: 'editor',
         autoScale: false,
         zenMode: false,
-        darkMode: true,
-        infiniteCanvas: false,
+        darkMode: false,
+        infiniteCanvas: true,
         modifiedHeader: true,
         exportMode: 'jpg',
     });
