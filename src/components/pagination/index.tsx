@@ -8,7 +8,7 @@ import { v4 } from 'uuid';
 
 const index = () => {
     const [showDropdown, setShowDropdown] = useState<boolean>(false);
-    const { pages, setPages, page, setPage, loading, plugin, app } = useContext(MainContext);
+    const { config, pages, setPages, page, setPage, loading, plugin, app } = useContext(MainContext);
 
     const addPage = async () => {
         setIndex(INDEX + 1);
@@ -16,7 +16,7 @@ const index = () => {
             name: `Page ${INDEX}`,
             id: v4(),
         };
-    
+
         // create new page to dyte stores
         const PageStore = plugin.stores.get('page');
         await PageStore.bulkSet([
@@ -30,6 +30,7 @@ const index = () => {
 
         // create new page in tldraw
         (app as TldrawApp).createPage(pageObject.id, pageObject.name);
+        setShowDropdown((d) => !d);
     }
     const deletePage = (id: string) => {
         // delete page from tldraw
@@ -45,6 +46,7 @@ const index = () => {
         const PageStore = plugin.stores.get('page');
         PageStore.delete(id);
         PageStore.set('currentPage', { name, id: pageId });
+        setShowDropdown((d) => !d);
     }
     const switchPage = (pageObject: { name: string; id: string }) => {
         // change page state
@@ -87,7 +89,7 @@ const index = () => {
     }, [loading, app, plugin])
 
     return (
-        <div className="pagination">
+        <div className={ config?.darkMode ? "pagination-dark" : "pagination"}>
             <div className="pagination-header" onClick={() => {
                 setShowDropdown((s) => !s);
             }}>
@@ -98,7 +100,7 @@ const index = () => {
             </div>
             {
                 showDropdown && (
-                <div className="pagination-dropdown">
+                <div className={config?.darkMode ? "pagination-dropdown-dark" : "pagination-dropdown"}>
                     {
                         pages.map((p: any) => (
                             <div
@@ -116,7 +118,7 @@ const index = () => {
                             </div>
                         ))
                     }
-                    <div className="pagination-create" onClick={addPage}>
+                    <div className={config?.darkMode ? "pagination-create-dark" : "pagination-create"} onClick={addPage}>
                         Create Page
                         <Icon icon="add" className="pagination-icon" />
                     </div>

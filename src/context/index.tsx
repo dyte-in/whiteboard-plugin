@@ -25,15 +25,8 @@ interface Page {
 
 const MainProvider = ({ children }: { children: any }) => {
     const [self, setSelf] = useState<any>();
-    const [saving, setSaving] = useState<{
-        saving: boolean;
-        ignoreErrors: boolean;
-    }>({
-        saving: false,
-        ignoreErrors: false,
-    });
-    const [pages, setPages] = useState<{ name: string, id: string }[]>([]);
     const [enabledBy, setEnabledBy] = useState<string>();
+    const [pages, setPages] = useState<{ name: string, id: string }[]>([]);
     const [app, setApp] = useState<TldrawApp>();
     const [error, setError] = useState<string>('');
     const [plugin, setPlugin] = useState<DytePlugin>();
@@ -135,7 +128,7 @@ const MainProvider = ({ children }: { children: any }) => {
             const followId = payload.follow;
             if (peer.id === enabledBy && !remoteFollowId && followID) {
                 remoteConfig.set('follow', followID);
-            } 
+            }
             if (remoteFollowId && remoteFollowId !== followId) {
                 remoteConfig.set('follow', followID);
             }
@@ -231,6 +224,7 @@ const MainProvider = ({ children }: { children: any }) => {
     // update data
     useEffect(() => {
         if (!plugin || !app) return;
+
         const AssetStore = plugin.stores.create(`${page.id}-assets`, storeConf);
         const ShapeStore = plugin.stores.create(`${page.id}-shapes`, storeConf);
         const BindingStore = plugin.stores.create(`${page.id}-bindings`, storeConf);
@@ -290,6 +284,12 @@ const MainProvider = ({ children }: { children: any }) => {
         }
     }, [app, plugin, page, autoScale])
 
+    useEffect(() => {
+        if (!app || !plugin) return;
+
+        (app as any).onStateDidChange = () => {}
+    }, [app, plugin])
+
     return (
         <MainContext.Provider
             value={{
@@ -311,12 +311,9 @@ const MainProvider = ({ children }: { children: any }) => {
                 meetingId,
                 following,
                 followers,
-                saving,
-                setSaving,
                 setAutoScale,
                 setFollowers,
                 setFollowing,
-                setPageHistory,
                 pages,
                 setPages,
             }}

@@ -26,12 +26,11 @@ const A4_PAPER_RATIO = A4_PAPER_DIMENSIONS.width / A4_PAPER_DIMENSIONS.height;
 const SaveButton = () => {
 
     const [uploaded, setUploaded] = useState<boolean>(false);
+    const [saving, setSaving] = useState<boolean>(false);
     const {
         app,
         plugin,
         page,
-        saving,
-        setSaving,
         meetingId,
         setError,
         autoScale,
@@ -134,15 +133,13 @@ const SaveButton = () => {
         return doc;
     }
     const handleExport = async (ignoreErrors = false) => {
-        if (uploaded) return;
+        if (uploaded || saving) return;
+        setSaving(true);
         try {
             const isEmpty = app.getAppState().isEmptyCanvas;
             if (isEmpty) {
                 handleExportError();
-                setSaving({
-                    saving: false,
-                    ignoreErrors: false,
-                });
+                setSaving(false);
                 return;
             };
             app.setSetting('exportBackground', config.darkMode ? TDExportBackground.Dark : TDExportBackground.Light);
@@ -155,17 +152,11 @@ const SaveButton = () => {
             }
             if (!doc && ignoreErrors) {
                 handleExportError();
-                setSaving({
-                    saving: false,
-                    ignoreErrors: false,
-                });
+                setSaving(false);
                 return;
             }
             if (!doc) {
-                setSaving({
-                    saving: false,
-                    ignoreErrors: false,
-                });
+                setSaving(false);
                 setError("Can't capture an empty board.")
                 return;
             }
@@ -182,49 +173,29 @@ const SaveButton = () => {
                 setUploaded(false);
             }, 2000)
         } catch (e) {
-            if (ignoreErrors) {
-                handleExportError();
-                setSaving({
-                    saving: false,
-                    ignoreErrors: false,
-                });   
-            }
+            if (ignoreErrors) handleExportError()
             else {
                 setError('Error while saving board.')
             }
         }
-        setSaving({
-            saving: false,
-            ignoreErrors: false,
-        });
+        setSaving(false);
     };
 
     const getExportIcon = () => {
-        if (saving?.save) return 'loading';
+        if (saving) return 'loading';
         if (uploaded) return 'checkmark';
         return 'save';
     }
     const getExportColor = () => {
-        if (saving?.saving) return 'loading';
+        if (saving) return 'loading';
         if (uploaded) return 'success';
         return '';
     }
 
     useEffect(() => {
-        if (saving?.saving) {
-            setTimeout(async () => {
-                handleExport(saving?.ignoreErrors);
-            }, 500);
-        }
-    }, [saving])
-
-    useEffect(() => {
         if (!plugin || !app) return;
-        plugin.room.on('save-board', () => {
-            setSaving({
-                saving: true,
-                ignoreErrors: true,
-            });
+        plugin.room.on('save-board', async () => {
+            await handleExport(true);
         })
         return () => {
             plugin.room.removeListeners('save-board');
@@ -235,7 +206,7 @@ const SaveButton = () => {
         setAutoScale((a: boolean) => !a);
     }
 
-    if (saving?.saving) {
+    if (saving) {
         return (
             config.darkMode
             ? <div className='save-loader loading-page-dark'>
@@ -257,12 +228,7 @@ const SaveButton = () => {
             className={`${config.darkMode ? 'settings-icon-dark' : 'settings-icon'} ${autoScale ? 'active' : ''}`}
             icon='scale' />
             <Icon
-            onClick={() => {
-                setSaving({
-                    saving: true,
-                    ignoreErrors: false,
-                });
-            }}
+            onClick={() => handleExport()}
             className={`${config.darkMode ? 'settings-icon-dark' : 'settings-icon'} ${getExportColor()}`}
             icon={getExportIcon()} />
         </div>

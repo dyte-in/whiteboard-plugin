@@ -5,29 +5,12 @@ import { TDAsset, TDAssets, TDBinding, TDShape, TDUser, TDUserStatus, TldrawApp 
 import { Utils } from '@tldraw/core'
 import axios from 'axios';
 import { INDEX, setIndex, storeConf } from '../utils/constants';
-import { DyteStore } from '@dytesdk/plugin-sdk';
 
 
 export function UsePlayer(meetingId: string) {
   const [activeTool, setActiveTool] = useState<string>('select');
   const [ready, setReady] = useState<boolean>(false);
-  const {
-    app,
-    page,
-    self,
-    plugin,
-    config,
-    setApp,
-    saving,
-    setPage,
-    loading,
-    setPages,
-    setUsers,
-    setError,
-    enabledBy,
-    setLoading,
-    setPageHistory,
-  } = useContext(MainContext);
+  const { loading, setPages, setLoading, app, page, setPage, plugin, config, setApp, self, enabledBy, setUsers, setError } = useContext(MainContext);
 
   // load app
   const onMount = (tlApp: TldrawApp) => {
@@ -161,7 +144,7 @@ export function UsePlayer(meetingId: string) {
       (app as TldrawApp).changePage(currPage.id);
       setPage(currPage);
     }
-    if (!PageStore.get('page')) {
+    if (!size && !PageStore.get('page')) {
       setPages((p: any) => [...p, { id: 'page', name: 'Page 1'}]);
       if (self?.id === enabledBy) {
         PageStore.set('page', 'Page 1');
@@ -209,17 +192,17 @@ export function UsePlayer(meetingId: string) {
       bindings: Record<string, TDBinding | undefined>,
       assets: Record<string, TDAsset | undefined>,
   ) => {
-    if (!ready || loading) return;
+    if (loading) return;
 
     // make false if text or shape is undefined
     const AssetStore = plugin.stores.create(`${page.id}-assets`, storeConf);
     const ShapeStore = plugin.stores.create(`${page.id}-shapes`, storeConf);
     const BindingStore = plugin.stores.create(`${page.id}-bindings`, storeConf);
   
-    Object.entries(assets).map(async (asset: any) => {
+    Object.entries(assets).map((asset: any) => {
       if (asset[1]) {
         const assetShape = shapes[asset[0]];
-        AssetStore.set(asset[0],  {...asset[1], point: assetShape?.point})
+        AssetStore.set(asset[0], {...asset[1], point: assetShape?.point});
       }
     })
     Object.entries(shapes).map(async (shape) => {
@@ -229,16 +212,15 @@ export function UsePlayer(meetingId: string) {
       }
       const isShape = ShapeStore.get(shape[0]);
       const isAsset = AssetStore.get(shape[0]);
-      if (isShape || isAsset) ShapeStore.delete(shape[0])
+      if (isShape || isAsset) await ShapeStore.delete(shape[0]);
       if (isAsset) {
-        AssetStore.delete(shape[0]);
+        await AssetStore.delete(shape[0]);
         await handleImageDelete(shape[0]);
       }
     })
-
-    Object.entries(bindings).map(async (binding) => {
+    Object.entries(bindings).map((binding) => {
       if (binding[1]) {
-        await BindingStore.set(binding[0], binding[1]);
+        BindingStore.set(binding[0], binding[1]);
         return;
       }
       const isBinding = BindingStore.get(binding[0]);
@@ -248,7 +230,7 @@ export function UsePlayer(meetingId: string) {
     if (activeTool === 'text') return;   
     app.selectNone();
     app.selectTool(activeTool as any);
-  }, [ready, page, loading, activeTool]), 250);
+  }, [loading, activeTool, page]), 250);
 
   function keepSelectedShapesInViewport(app: TldrawApp) {
     const { selectedIds } = app;
@@ -264,7 +246,9 @@ export function UsePlayer(meetingId: string) {
 
     // Define the min/max x/y (here we're using the viewport but
     // we could use any arbitrary bounds)
-    const { minX, minY, maxX, maxY } = app.viewport;
+    const { minX, minY, maxX, maxY } = app.viewport ?? {
+      minX: 0, minY: 0, maxX: 0, maxY: 0
+    };
 
     // Check for any overlaps between the viewport and the selection bounding box
     let ox = Math.min(bounds.minX, minX) || Math.max(bounds.maxX - maxX, 0);
@@ -323,8 +307,8 @@ export function UsePlayer(meetingId: string) {
   }
   
   // update other users when I move
-  const onChangePresence = useCallback((app :TldrawApp, user: TDUser) => {
-    if (self?.isRecorder || self?.isHidden || saving?.saving) return;
+  const onChangePresence = (app :TldrawApp, user: TDUser) => {
+    if (self?.isRecorder || self?.isHidden) return;
     if (ready && !config.infiniteCanvas) limitCanvas(app);
     const userPayload = {
       user, 
@@ -333,7 +317,7 @@ export function UsePlayer(meetingId: string) {
     };
     const event = new CustomEvent("emit-on-move", { detail: userPayload });
     window.dispatchEvent(event);
-  }, [self, saving])
+  }
 
   // handle images
   const handleImageUpload = async (_: TldrawApp, file: File, id: string) => {
