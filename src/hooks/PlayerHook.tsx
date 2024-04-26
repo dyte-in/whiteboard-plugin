@@ -246,7 +246,9 @@ export function UsePlayer(meetingId: string) {
 
     // Define the min/max x/y (here we're using the viewport but
     // we could use any arbitrary bounds)
-    const { minX, minY, maxX, maxY } = app.viewport;
+    const { minX, minY, maxX, maxY } = app.viewport ?? {
+      minX: 0, minY: 0, maxX: 0, maxY: 0
+    };
 
     // Check for any overlaps between the viewport and the selection bounding box
     let ox = Math.min(bounds.minX, minX) || Math.max(bounds.maxX - maxX, 0);
