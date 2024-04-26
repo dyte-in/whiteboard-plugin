@@ -221,32 +221,6 @@ const MainProvider = ({ children }: { children: any }) => {
         })
     }, [app, plugin, users, following]);
 
-    // update page
-    useEffect(() => {
-        if (!plugin || !app) return;
-        const PageStore = plugin.stores.create('page', storeConf);
-        PageStore.subscribe('*', (data) => {
-            const pId = Object.keys(data)[0];
-            if (!data[pId]) {
-                app.deletePage(pId);
-            }
-            const currentPage = data.currentPage;
-            if (!currentPage) return;
-            if (!loading) {
-                const p = app.getPage(currentPage.id);
-                if (!p) {
-                    app.createPage(currentPage.id, currentPage.name);
-                } else {
-                    app.changePage(currentPage.id);
-                }
-            }
-            setPage(currentPage);
-        })
-        return () => {
-            PageStore.unsubscribe('*');
-        }
-    }, [loading, app, plugin])
-
     // update data
     useEffect(() => {
         if (!plugin || !app) return;

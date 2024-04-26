@@ -1,5 +1,5 @@
 import { MainContext } from '../context';
-import { useCallback, useContext, useEffect, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useState } from 'react'
 import { fetchUrl, getFormData, randomColor, debounce, createShapeObj } from '../utils/helpers';
 import { TDAsset, TDAssets, TDBinding, TDShape, TDUser, TDUserStatus, TldrawApp } from '@tldraw/tldraw';
 import { Utils } from '@tldraw/core'
@@ -227,9 +227,7 @@ export function UsePlayer(meetingId: string) {
       if (isBinding) BindingStore.delete(binding[0]);
     })
 
-    if (
-      activeTool === 'text'
-    ) return;   
+    if (activeTool === 'text') return;   
     app.selectNone();
     app.selectTool(activeTool as any);
   }, [loading, activeTool, page]), 250);
