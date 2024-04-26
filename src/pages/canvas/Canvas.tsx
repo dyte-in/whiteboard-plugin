@@ -23,7 +23,7 @@ const Canvas = () => {
             darkMode={false}
             showMenu={false}
             autofocus
-            showPages={config?.modifiedHeader ? true : false}
+            showPages={false}
         />
         <div className="header-elements">
           <Settings />

@@ -4,13 +4,13 @@ import { fetchUrl, getFormData, randomColor, debounce, createShapeObj } from '..
 import { TDAsset, TDAssets, TDBinding, TDShape, TDUser, TDUserStatus, TldrawApp } from '@tldraw/tldraw';
 import { Utils } from '@tldraw/core'
 import axios from 'axios';
-import { storeConf } from '../utils/constants';
+import { INDEX, setIndex, storeConf } from '../utils/constants';
 
 
 export function UsePlayer(meetingId: string) {
   const [activeTool, setActiveTool] = useState<string>('select');
   const [ready, setReady] = useState<boolean>(false);
-  const { loading, setLoading, app, page, setPage, plugin, config, setApp, self, enabledBy, setUsers, setError } = useContext(MainContext);
+  const { loading, setPages, setLoading, app, page, setPage, plugin, config, setApp, self, enabledBy, setUsers, setError } = useContext(MainContext);
 
   // load app
   const onMount = (tlApp: TldrawApp) => {
@@ -118,6 +118,16 @@ export function UsePlayer(meetingId: string) {
     let doc = app.document;
     for(let i=0; i < size; i++) {
       const key = pageKeys[i];
+      if (key !== 'currentPage') {
+        const index = pages[key].split(' ')[1] ?? '1';
+        if (index) {
+          const parsedIndex = parseInt(index);
+          if (!Number.isNaN(parsedIndex)) {
+            setIndex(Math.max(INDEX, parsedIndex));
+          }
+        }
+        setPages((p: any) => [...p, { id: key, name: pages[key]}]);
+      }
       const resp = await updateCanvas(key, pages[key], i);
       if (resp) {
         doc.pages[key] = resp.pages;
@@ -134,8 +144,11 @@ export function UsePlayer(meetingId: string) {
       (app as TldrawApp).changePage(currPage.id);
       setPage(currPage);
     }
-    if (self?.id === enabledBy && !PageStore.get('page')) {
-      PageStore.set('page', 'Page 1');
+    if (!size && !PageStore.get('page')) {
+      setPages((p: any) => [...p, { id: 'page', name: 'Page 1'}]);
+      if (self?.id === enabledBy) {
+        PageStore.set('page', 'Page 1');
+      }
     }
     setLoading(false);
     app.setStatus('ready');

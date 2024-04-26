@@ -26,6 +26,7 @@ interface Page {
 const MainProvider = ({ children }: { children: any }) => {
     const [self, setSelf] = useState<any>();
     const [enabledBy, setEnabledBy] = useState<string>();
+    const [pages, setPages] = useState<{ name: string, id: string }[]>([]);
     const [app, setApp] = useState<TldrawApp>();
     const [error, setError] = useState<string>('');
     const [plugin, setPlugin] = useState<DytePlugin>();
@@ -33,7 +34,7 @@ const MainProvider = ({ children }: { children: any }) => {
     const [loading, setLoading] = useState<boolean>(false);
     const [page, setPage] = useState<Page>({
         id: 'page',
-        name: 'Page 1'
+        name: 'Page 1',
     });
     const [autoScale, setAutoScale] = useState<boolean>(false);
     const [meetingId, setMeetingId] = useState<string>('');
@@ -44,8 +45,8 @@ const MainProvider = ({ children }: { children: any }) => {
         role: 'editor',
         autoScale: false,
         zenMode: false,
-        darkMode: false,
-        infiniteCanvas: true,
+        darkMode: true,
+        infiniteCanvas: false,
         modifiedHeader: true,
         exportMode: 'jpg',
     });
@@ -125,10 +126,9 @@ const MainProvider = ({ children }: { children: any }) => {
             if (payload.autoScale) setAutoScale(true);
             const remoteFollowId = remoteConfig.get('follow');
             const followId = payload.follow;
-            if (peer.id === enabledBy) {
-                if (!remoteFollowId && followID)
-                    remoteConfig.set('follow', followID);
-            } 
+            if (peer.id === enabledBy && !remoteFollowId && followID) {
+                remoteConfig.set('follow', followID);
+            }
             if (remoteFollowId && remoteFollowId !== followId) {
                 remoteConfig.set('follow', followID);
             }
@@ -313,25 +313,8 @@ const MainProvider = ({ children }: { children: any }) => {
     useEffect(() => {
         if (!app || !plugin) return;
 
-        (app as any).onStateDidChange = () => {
-            if (loading) return;
-            const p = app.getPage();
-            const PageStore = plugin.stores.get('page');
-            if (p.id === page.id) return;
-            const pageObj = {
-                id: p.id,
-                name: p.name ?? 'Page',
-            }
-            const currentPage = app.getPage(page.id);
-            if (!currentPage) {
-                PageStore.delete(page.id);
-            }
-            PageStore.set('currentPage', pageObj);
-            setPageHistory(new Set([...pageHistory, pageObj.id]))
-            PageStore.set(pageObj.id, pageObj.name);
-            setPage(pageObj);
-        }
-    }, [loading, app, plugin, page])
+        (app as any).onStateDidChange = () => {}
+    }, [app, plugin])
 
     return (
         <MainContext.Provider
@@ -357,6 +340,8 @@ const MainProvider = ({ children }: { children: any }) => {
                 setAutoScale,
                 setFollowers,
                 setFollowing,
+                pages,
+                setPages,
             }}
         >
             {children}

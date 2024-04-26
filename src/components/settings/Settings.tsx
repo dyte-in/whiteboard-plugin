@@ -7,6 +7,7 @@ import { MainContext } from '../../context';
 import { useContext, useEffect, useState } from 'react';
 import { TDExportBackground, TDExportType, TldrawApp } from '@tldraw/tldraw';
 import { fetchUrl, getFormData } from '../../utils/helpers';
+import Pagination from '../pagination'
 import { Utils } from '@tldraw/core';
 
 
@@ -221,6 +222,7 @@ const SaveButton = () => {
     if (!config?.modifiedHeader) return null;
     return (
         <div className={config.darkMode ? 'settings-container-dark' : 'settings-container'}>
+            <Pagination />
             <Icon
             onClick={toggleAutoScale}
             className={`${config.darkMode ? 'settings-icon-dark' : 'settings-icon'} ${autoScale ? 'active' : ''}`}
