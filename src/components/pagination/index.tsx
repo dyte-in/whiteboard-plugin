@@ -8,7 +8,7 @@ import { v4 } from 'uuid';
 
 const index = () => {
     const [showDropdown, setShowDropdown] = useState<boolean>(false);
-    const { config, pages, setPages, page, setPage, loading, plugin, app } = useContext(MainContext);
+    const { activeTool, config, pages, setPages, page, setPage, loading, plugin, app, following } = useContext(MainContext);
 
     const addPage = async () => {
         setIndex(INDEX + 1);
@@ -67,7 +67,7 @@ const index = () => {
             const pId = Object.keys(data)[0];
             if (!data[pId]) {
                 setPages((p: any) => p.filter((x: any) => x.id !== pId));
-                app.deletePage(pId);
+                app.deletePage(pId); 
             }
             const currentPage = data.currentPage;
             if (!currentPage) return;
@@ -87,6 +87,20 @@ const index = () => {
             PageStore.unsubscribe('*');
         }
     }, [loading, app, plugin])
+
+   // closes pagination when following someone
+   useEffect(() => {
+    if (following?.length) {
+        setShowDropdown(false);
+    }
+   }, [following])
+
+   // closes pagination while drawing (IMP so that user does not end up creating a page while drawing)
+   useEffect(() => {
+    if (activeTool !== 'select') {
+        setShowDropdown(false);
+    }
+   }, [activeTool])
 
     return (
         <div className={ config?.darkMode ? "pagination-dark" : "pagination"}>

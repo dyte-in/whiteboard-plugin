@@ -25,6 +25,7 @@ interface Page {
 
 const MainProvider = ({ children }: { children: any }) => {
     const [self, setSelf] = useState<any>();
+    const [activeTool, setActiveTool] = useState<string>('select');
     const [enabledBy, setEnabledBy] = useState<string>();
     const [pages, setPages] = useState<{ name: string, id: string }[]>([]);
     const [app, setApp] = useState<TldrawApp>();
@@ -221,6 +222,12 @@ const MainProvider = ({ children }: { children: any }) => {
         })
     }, [app, plugin, users, following]);
 
+    const isCurrentPage = (obj: any) => {
+        const { parentId } = obj ?? { parentId: '' };
+        const page = (app as TldrawApp).getPage();
+        return page.id === parentId;
+    }
+
     // update data
     useEffect(() => {
         if (!plugin || !app) return;
@@ -232,12 +239,13 @@ const MainProvider = ({ children }: { children: any }) => {
         AssetStore.subscribe('*', (asset) => {
             const key = Object.keys(asset)[0];
             const selectedIds = app.selectedIds ?? [];
-            if (asset[key]) {
+            const assetObj = asset[key];
+            if (assetObj) {
                 app.patchAssets(asset);
                 let shape: TDShape;
                 if (assetArchive[key]) {
                     shape = assetArchive[key];
-                }  else shape = createShapeObj(asset[key], app.viewport, page.id);
+                }  else shape = createShapeObj(assetObj, app.viewport, page.id);
                 if (shape) {
                     // NOTE: if this fails the app can crash
                     app.patchCreate([shape]);
@@ -251,13 +259,16 @@ const MainProvider = ({ children }: { children: any }) => {
         ShapeStore.subscribe('*', (shape) => {
             const key = Object.keys(shape)[0];
             const selectedIds = app.selectedIds ?? [];
-            if (shape[key]) {
-                if (shape[key].assetId && !app.document.assets[key]) {
-                    assetArchive[key] = shape[key];
+            const shapeObj = shape[key];
+            if (shapeObj) {
+                const isPage = isCurrentPage(shapeObj);
+                if (!isPage) return;
+                if (shapeObj.assetId && !app.document.assets[key]) {
+                    assetArchive[key] = shapeObj;
                     return;
                 }
                 // NOTE: if this fails the app can crash
-                app.patchCreate([shape[key]])
+                app.patchCreate([shapeObj])
                 try { app.select(...selectedIds) } catch (e) {}
                 resizeCanvas();
                 return;
@@ -267,9 +278,12 @@ const MainProvider = ({ children }: { children: any }) => {
         BindingStore.subscribe('*', (binding) => {
             const key = Object.keys(binding)[0];
             const selectedIds = app.selectedIds ?? [];
-            if (binding[key]) {
+            const bindObj = binding[key];
+            if (bindObj) {
+                const isPage = isCurrentPage(bindObj);
+                if (!isPage) return;
                 // NOTE: if this fails the app can crash
-                app.patchCreate(undefined, [binding[key]]);
+                app.patchCreate(undefined, [bindObj]);
                 try { app.select(...selectedIds) } catch (e) {}
                 resizeCanvas();
                 return;
@@ -315,6 +329,8 @@ const MainProvider = ({ children }: { children: any }) => {
                 setFollowers,
                 setFollowing,
                 pages,
+                activeTool,
+                setActiveTool,
                 setPages,
             }}
         >

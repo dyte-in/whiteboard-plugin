@@ -8,9 +8,24 @@ import { INDEX, setIndex, storeConf } from '../utils/constants';
 
 
 export function UsePlayer(meetingId: string) {
-  const [activeTool, setActiveTool] = useState<string>('select');
   const [ready, setReady] = useState<boolean>(false);
-  const { loading, setPages, setLoading, app, page, setPage, plugin, config, setApp, self, enabledBy, setUsers, setError } = useContext(MainContext);
+  const {
+    following,
+    activeTool,
+    setActiveTool,
+    loading,
+    setPages,
+    setLoading,
+    app,
+    page,
+    setPage,
+    plugin,
+    config,
+    setApp,
+    self,
+    enabledBy,
+    setUsers,
+    setError } = useContext(MainContext);
 
   // load app
   const onMount = (tlApp: TldrawApp) => {
@@ -57,10 +72,27 @@ export function UsePlayer(meetingId: string) {
     const toolbar = document.getElementById("TD-PrimaryTools");
     const handleClick = (e: any) => {
       setTimeout(() => {
+        if (tlApp.currentTool.type === 'sticky') return;
         setActiveTool(tlApp.currentTool.type);
       }, 200)
     }
     toolbar?.addEventListener('click', handleClick);
+  }
+
+  const onUndo = (tlApp: TldrawApp) => {
+    const page = tlApp.page;
+    const PageStore = plugin.stores.get('page');
+    const currentPage = PageStore.get('currentPage');
+    console.log('pages:', page, currentPage);
+    if (currentPage && page.id !== currentPage.id) {
+      const isPage = app.getPage(currentPage.id);
+      if (isPage) {
+        (app as TldrawApp).changePage(currentPage.id);
+      } else {
+        (app as TldrawApp).createPage(currentPage.id, currentPage.name);
+      }
+      
+    }
   }
 
   const updateCanvas = async (id: string, pageData: string, index: number ) => {
@@ -192,8 +224,12 @@ export function UsePlayer(meetingId: string) {
       bindings: Record<string, TDBinding | undefined>,
       assets: Record<string, TDAsset | undefined>,
   ) => {
-    if (loading) return;
-
+    if (
+      loading 
+      || config?.role === 'viewer' 
+      || following?.length
+    ) return;
+   
     // make false if text or shape is undefined
     const AssetStore = plugin.stores.create(`${page.id}-assets`, storeConf);
     const ShapeStore = plugin.stores.create(`${page.id}-shapes`, storeConf);
@@ -202,11 +238,19 @@ export function UsePlayer(meetingId: string) {
     Object.entries(assets).map((asset: any) => {
       if (asset[1]) {
         const assetShape = shapes[asset[0]];
+        if (assetShape?.parentId !== app.page.id) {
+          console.log('invalid operation!');
+          return;
+        };
         AssetStore.set(asset[0], {...asset[1], point: assetShape?.point});
       }
     })
     Object.entries(shapes).map(async (shape) => {
       if (shape[1]) {
+        if (shape[1].parentId !== app.page.id) {
+          console.log('invalid operation!');
+          return;
+        };
         if (!assets[shape[0]]) ShapeStore.set(shape[0], shape[1]);
         return;
       }
@@ -227,10 +271,10 @@ export function UsePlayer(meetingId: string) {
       if (isBinding) BindingStore.delete(binding[0]);
     })
 
-    if (activeTool === 'text') return;   
+    if (activeTool === 'text' || activeTool === 'sticky') return;   
     app.selectNone();
     app.selectTool(activeTool as any);
-  }, [loading, activeTool, page]), 250);
+  }, [loading, activeTool, page, config, following]), 250);
 
   function keepSelectedShapesInViewport(app: TldrawApp) {
     const { selectedIds } = app;
@@ -271,7 +315,7 @@ export function UsePlayer(meetingId: string) {
     let vx = 0;
     let vy = 0; 
     const zoom = Math.max(1, app.zoom);
-    const { maxX: x, maxY: y } = app.viewport;
+    const { width: x, height: y } = app.viewport;
     let extX = x;
     let extY = y;
     if (zoom > 1) {
@@ -345,6 +389,7 @@ export function UsePlayer(meetingId: string) {
       onChangePage,
       onAssetCreate,
       onAssetUpload,
+      onUndo,
       onChangePresence,
   };
 }
