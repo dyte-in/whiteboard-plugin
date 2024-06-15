@@ -223,14 +223,20 @@ const SaveButton = () => {
     return (
         <div className={config.darkMode ? 'settings-container-dark' : 'settings-container'}>
             <Pagination />
-            <Icon
-            onClick={toggleAutoScale}
-            className={`${config.darkMode ? 'settings-icon-dark' : 'settings-icon'} ${autoScale ? 'active' : ''}`}
-            icon='scale' />
-            <Icon
-            onClick={() => handleExport()}
-            className={`${config.darkMode ? 'settings-icon-dark' : 'settings-icon'} ${getExportColor()}`}
-            icon={getExportIcon()} />
+            {
+                !config?.zenMode && (
+                    <div className="align-row">
+                        <Icon
+                        onClick={toggleAutoScale}
+                        className={`${config.darkMode ? 'settings-icon-dark' : 'settings-icon'} ${autoScale ? 'active' : ''}`}
+                        icon='scale' />
+                        <Icon
+                        onClick={() => handleExport()}
+                        className={`${config.darkMode ? 'settings-icon-dark' : 'settings-icon'} ${getExportColor()}`}
+                        icon={getExportIcon()}/>
+                    </div>
+                )
+            }
         </div>
     )
 }

@@ -16,7 +16,7 @@ const App = () => {
            <Canvas />
           )
           : (
-            config.darkMode
+            config?.darkMode
             ? <div className='loading-page-dark'>
               <img src={logoWhite} /> <p>Whiteboard</p>
             </div>

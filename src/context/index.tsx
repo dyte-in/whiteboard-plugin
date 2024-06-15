@@ -118,7 +118,7 @@ const MainProvider = ({ children }: { children: any }) => {
             if (followID) setFollowing([followID])
             else {
                 setFollowing([enabledBy]);
-                setConfig({ follow: enabledBy, role: 'viewer', autoScale: false, zenMode: true,  })
+                setConfig({ follow: enabledBy, role: 'viewer', autoScale: false, zenMode: true, modifiedHeader: true,  })
             }
         }
 
@@ -197,7 +197,7 @@ const MainProvider = ({ children }: { children: any }) => {
         }
     }, [app, plugin, following]);
     useEffect(() => {
-        if (!app || !plugin) return;
+        if (!app || !plugin) return; 
         plugin.room.on('peerLeft', ({payload: { id }}) => {
             const UserStore = plugin.stores.get('users');
             const user = users[id];
@@ -205,7 +205,10 @@ const MainProvider = ({ children }: { children: any }) => {
             // remove from app
             app.removeUser(user.id);
             // remove from store
-            UserStore.delete(id);
+            if (self.id === enabledBy) {
+                console.log('here: deleting the user');
+                UserStore.delete(id);
+            }
             // update users state
             setUsers((u) => {
                 const tempUsers = u;
@@ -220,7 +223,10 @@ const MainProvider = ({ children }: { children: any }) => {
                 setFollowing(tempFollowing);
             }
         })
-    }, [app, plugin, users, following]);
+        return () => {
+            plugin.room.removeAllListeners('peerLeft');
+        }
+    }, [app, plugin, users, following, enabledBy, self]);
 
     const isCurrentPage = (obj: any) => {
         const { parentId } = obj ?? { parentId: '' };
