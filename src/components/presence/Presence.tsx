@@ -89,6 +89,15 @@ const Presence = () => {
         }
     }, [followers]);
 
+    /**
+     * Do not show presence icons if you are following someone.
+     * Do not show presence icons if you are followed by everyone 
+     */
+    if (
+        following[0]
+        || followers?.size === Object.keys(users)?.length
+    ) return null;
+
     return (
     <div>
         {(() => {

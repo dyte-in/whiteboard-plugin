@@ -44,7 +44,7 @@ const index = () => {
 
         // delete page from dyte stores
         const PageStore = plugin.stores.get('page');
-        PageStore.delete(id);
+        PageStore.bulkDelete([{key: id}]);
         PageStore.set('currentPage', { name, id: pageId });
         setShowDropdown((d) => !d);
     }

@@ -91,7 +91,7 @@ export function UsePlayer(meetingId: string) {
       } else {
         (app as TldrawApp).createPage(currentPage.id, currentPage.name);
       }
-      
+
     }
   }
 
@@ -236,19 +236,27 @@ export function UsePlayer(meetingId: string) {
     const BindingStore = plugin.stores.create(`${page.id}-bindings`, storeConf);
   
     Object.entries(assets).map((asset: any) => {
-      if (asset[1]) {
+      if (
+        asset[1] 
+        && (
+          typeof asset[1] !== 'string' 
+          && !Array.isArray(asset[1])
+          && typeof asset[1] !== 'undefined' 
+        )
+      ) {
         const assetShape = shapes[asset[0]];
+        const assetObj = {...asset[1], point: assetShape?.point };
         if (assetShape?.parentId !== app.page.id) {
-          console.log('invalid operation!');
+          console.log('invalid asset operation!');
           return;
         };
-        AssetStore.set(asset[0], {...asset[1], point: assetShape?.point});
+        AssetStore.set(asset[0], assetObj);
       }
     })
     Object.entries(shapes).map(async (shape) => {
       if (shape[1]) {
         if (shape[1].parentId !== app.page.id) {
-          console.log('invalid operation!');
+          console.log('invalid shape operation!');
           return;
         };
         if (!assets[shape[0]]) ShapeStore.set(shape[0], shape[1]);
@@ -285,7 +293,7 @@ export function UsePlayer(meetingId: string) {
   
     // Get the bounds of the selected shapes
     const bounds = Utils.getCommonBounds(
-      shapes.map((shape) => app.getShapeUtil(shape).getBounds(shape))
+      shapes.map((shape) => app.getShapeUtil(shape)?.getBounds(shape))
     );
 
     // Define the min/max x/y (here we're using the viewport but
@@ -301,12 +309,14 @@ export function UsePlayer(meetingId: string) {
     // If there's any overlaps, then update the shapes so that
     // there is no longer any overlap.
     if (ox !== 0 || oy !== 0) {
+      const h = app.history;
       app.updateShapes(
         ...shapes.map((shape) => ({
           id: shape.id,
           point: [shape.point[0] - ox, shape.point[1] - oy]
         }))
       );
+      app.replaceHistory(h);
     }
   }
 

@@ -26,3 +26,6 @@
 #TD-MultiplayerMenuIcon {
     @apply hidden;
 }
+.align-row {
+    @apply flex flex-row items-center;
+}

@@ -15,8 +15,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@dytesdk/plugin-sdk": "2.3.2",
-    "@tldraw/tldraw": "^1.29.2",
+    "@dytesdk/plugin-sdk": "2.4.0",
+    "@tldraw/tldraw": "^1.20.0",
     "axios": "^1.4.0",
     "core-js": "^3.30.2",
     "jspdf": "^2.5.1",
