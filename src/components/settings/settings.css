@@ -1,5 +1,5 @@
 .settings-container {
-    @apply flex flex-row items-center justify-center bg-white rounded-br-md text-xs overflow-hidden border-solid border-[1px] border-gray-200 p-1 shadow-[0_8px_30px_rgb(0,0,0,0.16)] box-border;
+    @apply flex flex-row items-center justify-center bg-[#f8f8f8] rounded-b-md text-xs overflow-hidden border-solid border-[1px] border-gray-200 p-1.5 shadow-[0_8px_20px_rgb(0,0,0,0.08)] box-border;
 }
 
 .settings-container-dark {
@@ -21,4 +21,11 @@
 
 .active {
     @apply text-blue-500;
+}
+
+#TD-MultiplayerMenuIcon {
+    @apply hidden;
+}
+.align-row {
+    @apply flex flex-row items-center;
 }

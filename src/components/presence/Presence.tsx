@@ -37,7 +37,7 @@ const Presence = () => {
         const n = name.split(' ');
         let initials = '';
         n.map((x, index) => {
-            if (index < 2) initials += x[0].toUpperCase();
+            if (index < 2) initials += x[0]?.toUpperCase();
         })
         return initials ?? 'P';
     }
@@ -88,6 +88,15 @@ const Presence = () => {
             plugin.removeListeners('followResponse');
         }
     }, [followers]);
+
+    /**
+     * Do not show presence icons if you are following someone.
+     * Do not show presence icons if you are followed by everyone 
+     */
+    if (
+        following[0]
+        || followers?.size === Object.keys(users)?.length
+    ) return null;
 
     return (
     <div>

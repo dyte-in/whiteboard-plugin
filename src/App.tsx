@@ -1,11 +1,12 @@
 import './index.css';
-import { useContext } from 'react';
+import { useContext, useEffect } from 'react';
 import { MainContext } from './context';
 import logo from '../src/assets/icon.png';
+import logoWhite from '../src/assets/logo-white.png';
 import Canvas from './pages/canvas/Canvas';
 
 const App = () => {
-  const { plugin, meetingId, self } = useContext(MainContext);
+  const { plugin, meetingId, self, config } = useContext(MainContext);
 
   return (
     <div className='container'>
@@ -14,7 +15,15 @@ const App = () => {
           ?  (
            <Canvas />
           )
-          : <div className="loading-page"><img src={logo} /> <p>Whiteboard</p></div>
+          : (
+            config?.darkMode
+            ? <div className='loading-page-dark'>
+              <img src={logoWhite} /> <p>Whiteboard</p>
+            </div>
+            : <div className="loading-page">
+              <img src={logo} /> <p>Whiteboard</p>
+            </div>
+          )
       }
     </div>
   )

@@ -1,7 +1,9 @@
 import DytePlugin from '@dytesdk/plugin-sdk';
-import { TDShape, TDUser, TldrawApp } from '@tldraw/tldraw';
+import { TDShape, TDUser, TldrawApp  } from '@tldraw/tldraw';
 import React, { useEffect, useState } from 'react'
-import { createShapeObj } from '../utils/helpers';
+import { createShapeObj, throttle } from '../utils/helpers';
+import { storeConf } from '../utils/constants';
+import summary from '../api/summary';
 
 const MainContext = React.createContext<any>({});
 
@@ -11,19 +13,47 @@ interface Config {
     autoScale?: boolean;
     zenMode?: boolean;
     darkMode?: boolean;
+    modifiedHeader?: boolean;
+    infiniteCanvas?: boolean;
+    exportMode?: 'pdf' | 'jpg';
+}
+
+interface Page {
+    id: string;
+    name: string;
 }
 
 const MainProvider = ({ children }: { children: any }) => {
     const [self, setSelf] = useState<any>();
+    const [activeTool, setActiveTool] = useState<string>('select');
+    const [enabledBy, setEnabledBy] = useState<string>();
+    const [pages, setPages] = useState<{ name: string, id: string }[]>([]);
     const [app, setApp] = useState<TldrawApp>();
     const [error, setError] = useState<string>('');
     const [plugin, setPlugin] = useState<DytePlugin>();
+    const [pageHistory, setPageHistory] = useState<Set<string>>(new Set());
+    const [loading, setLoading] = useState<boolean>(false);
+    const [page, setPage] = useState<Page>({
+        id: 'page',
+        name: 'Page 1',
+    });
     const [autoScale, setAutoScale] = useState<boolean>(false);
     const [meetingId, setMeetingId] = useState<string>('');
     const [following, setFollowing] = useState<string[]>([]);
     const [followers, setFollowers] = useState<Set<string>>(new Set());
     const [users, setUsers] = useState<Record<string, TDUser>>({});
-    const [config, setConfig] = useState<Config>({ role: 'editor', autoScale: false, zenMode: false, darkMode: false });
+    const [config, setConfig] = useState<Config>({ 
+        role: 'editor',
+        autoScale: false,
+        zenMode: false,
+        darkMode: false,
+        infiniteCanvas: true,
+        modifiedHeader: true,
+        exportMode: 'jpg',
+    });
+
+    // Attaching APIs
+    summary({ app, plugin, pageHistory, setLoading });
 
     useEffect(() => {
         if (!app || !config) return;
@@ -40,8 +70,7 @@ const MainProvider = ({ children }: { children: any }) => {
     const resizeCanvas = () => {
         if (!autoScale || !app) return;
         if (following.length) return;
-        const selected = app.selectedIds;
-        if (selected?.length) return;
+        if (app?.appState?.status === 'creating') return;
         app.selectAll();
         app.zoomToSelection();
         app.zoomToFit();
@@ -62,14 +91,20 @@ const MainProvider = ({ children }: { children: any }) => {
         const { payload: { peer }} = await dytePlugin.room.getPeer();
         const {payload: { enabledBy }} = await dytePlugin.enabledBy();
     
+        setEnabledBy(enabledBy);
         setSelf(peer);
 
         // populate stores
         await dytePlugin.stores.populate('config');
         await dytePlugin.stores.populate('users');
-        await dytePlugin.stores.populate('assets', { volatile: false });
-        await dytePlugin.stores.populate('shapes', { volatile: false });
-        await dytePlugin.stores.populate('bindings', { volatile: false });
+        await dytePlugin.stores.populate('page', storeConf);
+
+
+        // dispatch onMove events
+        window.addEventListener("emit-on-move", throttle((data: any) => {
+            const { detail } = data as any;
+            dytePlugin.emit('onMove', detail);
+        }, 400))
 
 
         setPlugin(dytePlugin);
@@ -83,17 +118,20 @@ const MainProvider = ({ children }: { children: any }) => {
             if (followID) setFollowing([followID])
             else {
                 setFollowing([enabledBy]);
-                setConfig({ follow: enabledBy, role: 'viewer', autoScale: false, zenMode: true,  })
+                setConfig({ follow: enabledBy, role: 'viewer', autoScale: false, zenMode: true, modifiedHeader: true,  })
             }
         }
 
         dytePlugin.room.on('config', async ({payload}) => {
-            setConfig({ ...config, ...payload });
-            const followID = remoteConfig.get('follow');
-            if (peer.id === enabledBy && !followID) {
-                remoteConfig.set('follow', payload.follow);
-            } else if (followID && followID !== payload) {
-                remoteConfig.set('follow', payload.follow);
+            setConfig((c) => ({ ...c, ...payload }));
+            if (payload.autoScale) setAutoScale(true);
+            const remoteFollowId = remoteConfig.get('follow');
+            const followId = payload.follow;
+            if (peer.id === enabledBy && !remoteFollowId && followID) {
+                remoteConfig.set('follow', followID);
+            }
+            if (remoteFollowId && remoteFollowId !== followId) {
+                remoteConfig.set('follow', followID);
             }
         })
 
@@ -159,7 +197,7 @@ const MainProvider = ({ children }: { children: any }) => {
         }
     }, [app, plugin, following]);
     useEffect(() => {
-        if (!app || !plugin) return;
+        if (!app || !plugin) return; 
         plugin.room.on('peerLeft', ({payload: { id }}) => {
             const UserStore = plugin.stores.get('users');
             const user = users[id];
@@ -167,7 +205,10 @@ const MainProvider = ({ children }: { children: any }) => {
             // remove from app
             app.removeUser(user.id);
             // remove from store
-            UserStore.delete(id);
+            if (self.id === enabledBy) {
+                console.log('here: deleting the user');
+                UserStore.delete(id);
+            }
             // update users state
             setUsers((u) => {
                 const tempUsers = u;
@@ -182,25 +223,35 @@ const MainProvider = ({ children }: { children: any }) => {
                 setFollowing(tempFollowing);
             }
         })
-    }, [app, plugin, users, following]);
+        return () => {
+            plugin.room.removeAllListeners('peerLeft');
+        }
+    }, [app, plugin, users, following, enabledBy, self]);
+
+    const isCurrentPage = (obj: any) => {
+        const { parentId } = obj ?? { parentId: '' };
+        const page = (app as TldrawApp).getPage();
+        return page.id === parentId;
+    }
 
     // update data
     useEffect(() => {
         if (!plugin || !app) return;
 
-        const AssetStore = plugin.stores.create('assets', { volatile: false });
-        const ShapeStore = plugin.stores.create('shapes', { volatile: false });
-        const BindingStore = plugin.stores.create('bindings', { volatile: false });
+        const AssetStore = plugin.stores.create(`${page.id}-assets`, storeConf);
+        const ShapeStore = plugin.stores.create(`${page.id}-shapes`, storeConf);
+        const BindingStore = plugin.stores.create(`${page.id}-bindings`, storeConf);
 
         AssetStore.subscribe('*', (asset) => {
             const key = Object.keys(asset)[0];
             const selectedIds = app.selectedIds ?? [];
-            if (asset[key]) {
+            const assetObj = asset[key];
+            if (assetObj) {
                 app.patchAssets(asset);
                 let shape: TDShape;
                 if (assetArchive[key]) {
                     shape = assetArchive[key];
-                }  else shape = createShapeObj(asset[key], app.viewport);
+                }  else shape = createShapeObj(assetObj, app.viewport, page.id);
                 if (shape) {
                     // NOTE: if this fails the app can crash
                     app.patchCreate([shape]);
@@ -214,13 +265,16 @@ const MainProvider = ({ children }: { children: any }) => {
         ShapeStore.subscribe('*', (shape) => {
             const key = Object.keys(shape)[0];
             const selectedIds = app.selectedIds ?? [];
-            if (shape[key]) {
-                if (shape[key].assetId && !app.document.assets[key]) {
-                    assetArchive[key] = shape[key];
+            const shapeObj = shape[key];
+            if (shapeObj) {
+                const isPage = isCurrentPage(shapeObj);
+                if (!isPage) return;
+                if (shapeObj.assetId && !app.document.assets[key]) {
+                    assetArchive[key] = shapeObj;
                     return;
                 }
                 // NOTE: if this fails the app can crash
-                app.patchCreate([shape[key]])
+                app.patchCreate([shapeObj])
                 try { app.select(...selectedIds) } catch (e) {}
                 resizeCanvas();
                 return;
@@ -230,9 +284,12 @@ const MainProvider = ({ children }: { children: any }) => {
         BindingStore.subscribe('*', (binding) => {
             const key = Object.keys(binding)[0];
             const selectedIds = app.selectedIds ?? [];
-            if (binding[key]) {
+            const bindObj = binding[key];
+            if (bindObj) {
+                const isPage = isCurrentPage(bindObj);
+                if (!isPage) return;
                 // NOTE: if this fails the app can crash
-                app.patchCreate(undefined, [binding[key]]);
+                app.patchCreate(undefined, [bindObj]);
                 try { app.select(...selectedIds) } catch (e) {}
                 resizeCanvas();
                 return;
@@ -245,7 +302,13 @@ const MainProvider = ({ children }: { children: any }) => {
             ShapeStore.unsubscribe('*');
             BindingStore.unsubscribe('*');
         }
-    }, [app, plugin, following, autoScale])
+    }, [app, plugin, page, autoScale])
+
+    useEffect(() => {
+        if (!app || !plugin) return;
+
+        (app as any).onStateDidChange = () => {}
+    }, [app, plugin])
 
     return (
         <MainContext.Provider
@@ -256,6 +319,11 @@ const MainProvider = ({ children }: { children: any }) => {
                 error,
                 plugin,
                 config,
+                page,
+                enabledBy,
+                loading,
+                setLoading,
+                setPage,
                 setApp,
                 setError,
                 setUsers,
@@ -266,6 +334,10 @@ const MainProvider = ({ children }: { children: any }) => {
                 setAutoScale,
                 setFollowers,
                 setFollowing,
+                pages,
+                activeTool,
+                setActiveTool,
+                setPages,
             }}
         >
             {children}
