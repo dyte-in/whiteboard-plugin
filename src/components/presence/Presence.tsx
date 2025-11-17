@@ -71,6 +71,23 @@ const Presence = () => {
     if (!app.settings.isFocusMode) app.toggleFocusMode();
   };
   useEffect(() => {
+    plugin.on("requestUserPosition", () => {
+      // Send user paylaod
+      const userPayload = {
+        override: true,
+        user: (app as TldrawApp)?.currentUser,
+        camera: app.camera,
+        size: { x: window.innerWidth, y: window.innerHeight, zoom: app.zoom },
+      };
+      // allow users to follow me
+      const event = new CustomEvent("emit-on-move", { detail: userPayload });
+      window.dispatchEvent(event);
+    });
+    return () => {
+      plugin.removeListeners("requestUserPosition");
+    };
+  }, [app]);
+  useEffect(() => {
     plugin.on("followRequest", ({ id }: { id: string }) => {
       // emit follow response
       plugin.emit("followResponse", { followIds: [self.id, ...following] }, [
@@ -78,30 +95,11 @@ const Presence = () => {
       ]);
       // update followers
       setFollowers((f: Set<string>) => new Set([...f, id]));
-      // Allow new followers to pan camera according to me
-      const userPayload = {
-        user: (app as TldrawApp)?.currentUser,
-        camera: app.camera,
-        size: { x: window.innerWidth, y: window.innerHeight, zoom: app.zoom },
-      };
-      const event = new CustomEvent("emit-on-move", { detail: userPayload });
-      window.dispatchEvent(event);
     });
     return () => {
       plugin.removeListeners("followRequest");
     };
   }, [following, app]);
-  useEffect(() => {
-    plugin.on("followResponse", ({ followIds }: { followIds: string[] }) => {
-      // update following
-      setFollowing((f: string[]) => [...f, ...followIds]);
-      // emit follow response to followers
-      plugin.emit("followResponse", { followIds }, [...followers]);
-    });
-    return () => {
-      plugin.removeListeners("followResponse");
-    };
-  }, [followers]);
 
   /**
    * Do not show presence icons if you are following someone.
