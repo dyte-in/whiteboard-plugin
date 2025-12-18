@@ -20,6 +20,8 @@ jobs:
           unset CI
           export GENERATE_SOURCEMAP=false
           npm run build
+        env:
+          VITE_API_BASE: ${{ secrets.VITE_API_BASE_STAGING }}
       - uses: actions/setup-node@v2
         with: 
           node-version: '14'
